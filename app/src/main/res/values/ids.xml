@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="soldier01" type="id"/>
+    <item name="soldier02" type="id"/>
+    <item name="soldier03" type="id"/>
+    <item name="soldier04" type="id"/>
+    <item name="soldier05" type="id"/>
+    <item name="soldier06" type="id"/>
+    <item name="soldier07" type="id"/>
+    <item name="soldier08" type="id"/>
+    <item name="soldier09" type="id"/>
+    <item name="soldier10" type="id"/>
+
+
+    <item name="car01" type="id"/>
+    <item name="car02" type="id"/>
+    <item name="car03" type="id"/>
+    <item name="car04" type="id"/>
+
+
+    <item name="horse01" type="id"/>
+    <item name="horse02" type="id"/>
+    <item name="horse03" type="id"/>
+    <item name="horse04" type="id"/>
+
+    <item name="elephant01" type="id"/>
+    <item name="elephant02" type="id"/>
+    <item name="elephant03" type="id"/>
+    <item name="elephant04" type="id"/>
+
+    <item name="cannon01" type="id"/>
+    <item name="cannon02" type="id"/>
+    <item name="cannon03" type="id"/>
+    <item name="cannon04" type="id"/>
+
+
+    <item name="general01" type="id"/>
+    <item name="general02" type="id"/>
+
+    <item name="scholar01" type="id"/>
+    <item name="scholar02" type="id"/>
+    <item name="scholar03" type="id"/>
+    <item name="scholar04" type="id"/>
+
+</resources>
