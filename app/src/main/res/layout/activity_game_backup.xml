@@ -15,6 +15,8 @@
         android:layout_height="wrap_content"
         android:background="@drawable/qizi"
         android:src="@drawable/heibing"
+        android:scaleX="1.5"
+        android:scaleY="1.5"
         tools:layout_editor_absoluteX="4dp"
         tools:layout_editor_absoluteY="36dp"
         tools:ignore="MissingConstraints" />

@@ -5,6 +5,7 @@ import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
 import android.widget.ImageButton
@@ -26,6 +27,15 @@ class GameActivity: AppCompatActivity() {
         setContentView(R.layout.activity_game)
 
         val constraintLayout = findViewById<ConstraintLayout>(R.id.game_panel)
+        val displayMetrics = DisplayMetrics()
+        this.windowManager.defaultDisplay.getMetrics(displayMetrics)
+        StatusModel.absolutePosition = AbsolutePosition(
+            displayMetrics.widthPixels, displayMetrics.heightPixels,
+            79, 79,
+            constraintLayout.width - 20, constraintLayout.height / 3 * 2)
+
+
+
 
         Model().getDefaultChessBoard().map { f1 ->
             f1.map { f ->
@@ -38,14 +48,19 @@ class GameActivity: AppCompatActivity() {
                     )
                 )
                 val params = imageButton.layoutParams as ConstraintLayout.LayoutParams
-                params.verticalBias = f.position.biasY
+
+//                val biasX = (f.position.x - StatusModel.absolutePosition.chessBoardWith / 2) / ((f.position.x - StatusModel.absolutePosition.chessBoardWith / 2) + (StatusModel.absolutePosition.screenWith - f.position.x - StatusModel.absolutePosition.chessBoardWith / 2))
+//                val biasY = (f.position.y - StatusModel.absolutePosition.chessBoardHeight / 2) / ((f.position.y - StatusModel.absolutePosition.chessBoardHeight / 2) + (StatusModel.absolutePosition.screenHeight - f.position.y - StatusModel.absolutePosition.chessBoardHeight / 2))
+                Log.d("position", "x: " + f.position.x + "  Y: " + f.position.y)
+                Log.d("imageButton", "w: " + imageButton.width + "  h: " + imageButton.height)
                 params.horizontalBias = f.position.biasX
+                params.verticalBias = f.position.biasY
                 imageButton.layoutParams = params
                 imageButton.setOnClickListener { view ->
                     run {
                         val params1 = view.layoutParams as ConstraintLayout.LayoutParams
-                        Log.d("view.biasX", view.x.toString())
-                        Log.d("view.biasY", view.y.toString())
+                        Log.d("view.x", view.x.toString())
+                        Log.d("view.y", view.y.toString())
                         Log.d("layout.biasX", params1.horizontalBias.toString())
                         Log.d("layout.biasY", params1.verticalBias.toString())
 
@@ -96,6 +111,17 @@ class GameActivity: AppCompatActivity() {
 //            Log.d("event.biasY", event.biasY.toString())
 //            Log.d("constraintLayout.w", constraintLayout.width.toString())
 //            Log.d("constraintLayout.h", constraintLayout.height.toString())
+
+            val displayMetrics = DisplayMetrics()
+            this.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics)
+            val qipanWidth = displayMetrics.widthPixels - 20
+            val qipanHeight = displayMetrics.heightPixels / 3 * 2
+
+            Log.d("pingmu", "displayMetrics.widthPixels:" + displayMetrics.widthPixels + "    displayMetrics.heightPixels:"  + displayMetrics.heightPixels)
+            Log.d("qipan", "qipanWidth:" + qipanWidth + "    qipanHeight:"  + qipanHeight)
+            Log.d("constraintLayout", "constraintLayout.w: " + constraintLayout.width + "  constraintLayout.h:" + constraintLayout.height)
+            Log.d("qizi", "w: " + v.width + "  h:" + v.height)
+
 
             if (StatusModel.isOk()) {
                 val imageButton = findViewById<ImageButton>(StatusModel.getChessPieceEvent().chessPiece.id)
