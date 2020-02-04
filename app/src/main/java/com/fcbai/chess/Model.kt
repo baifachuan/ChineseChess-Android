@@ -26,6 +26,12 @@ enum class ActionStatus {
     SUCCESS,
     CANNOTMOVE
 }
+
+enum class Step {
+    ROBOT,
+    HUMAN
+}
+
 data class ChessPiece(val name: String, val position: Position,
                       val group: Group, val id: Int,
                       val chessPieceType: ChessPieceType,
@@ -43,13 +49,17 @@ data class Car(val name: String, val position: Position, val group: Group, val i
 open class Event(val timestamp: Long = System.currentTimeMillis(), var eventName: String)
 data class ChessPieceEvent(val chessPiece: ChessPiece): Event(eventName = "ChessPieceEvent")
 data class PositionEvent(val position: Position): Event(eventName = "PositionEvent")
-data class ChessPiecePosition(val x: Float, val y: Float, val verticalBias: Float, val horizontalBias: Float)
+data class ChessPiecePosition(val x: Float, val y: Float, val verticalBias: Float, val horizontalBias: Float, val id: Int = -1)
 data class AbsolutePosition(val screenWith: Int, val screenHeight: Int,
                             val chessPieceWith: Int, val chessPieceHeight: Int,
                             val chessBoardWith: Int, val chessBoardHeight: Int
 )
+data class StepMessage(val id: Int = -1, val targetPosition: ChessPiecePosition = ChessPiecePosition(-1F, -1F, -1F, -1F), val step: Step = Step.HUMAN)
+data class RobotStepMessage(val id: Int = -1, val targetPosition: ChessPiecePosition = ChessPiecePosition(-1F, -1F, -1F, -1F))
 
 object StatusModel {
+    var stepMessage: StepMessage = StepMessage()
+    var robotStepMessage = RobotStepMessage()
     var absolutePosition: AbsolutePosition = AbsolutePosition(-1, -1, -1, -1, -1, -1)
 
     private val blinkViewQueue = LinkedBlockingDeque<View>()
@@ -67,25 +77,21 @@ object StatusModel {
     }
 
     fun putEvent(event: Event) {
-        eventQueue.removeAll(eventQueue.filter { f -> f.eventName.equals(event.eventName) })
-        eventQueue.add(event)
+        if (eventQueue.isNotEmpty()) eventQueue.clear()
+        if (eventQueue.isEmpty() && event.eventName == "PositionEvent") {
+
+        } else {
+            eventQueue.add(event)
+        }
+
     }
 
-    fun isOk(biasX: Float, biasY: Float): Boolean {
-        eventQueue.sortBy { it.timestamp }
-        return eventQueue.filter { f -> f.eventName == "ChessPieceEvent" }.count() == 2
-                && (eventQueue.first() as ChessPiecePosition ).horizontalBias == biasX
-                && (eventQueue.first() as ChessPiecePosition ).verticalBias == biasY
+    fun clearQueue() {
+        eventQueue.clear()
     }
 
-    fun isOk(): Boolean {
-        return eventQueue.filter { f -> f.eventName == "ChessPieceEvent" }.count() > 0 &&
-                eventQueue.filter { f -> f.eventName == "PositionEvent" }.count() > 0
-    }
-
-    fun getChessPieceEvent(): ChessPieceEvent {
-        eventQueue.sortBy { it.timestamp }
-        eventQueue.reverse()
+    fun getChessPieceEvent(): ChessPieceEvent? {
+        if (eventQueue.isEmpty()) return null
         return eventQueue.filter { f -> f.eventName == "ChessPieceEvent" }[0] as ChessPieceEvent
     }
 }
@@ -225,19 +231,13 @@ object Model {
             filter { f -> f.isNotEmpty() }[0][0]
     }
 
-
-    fun getChessPieceByPosition(verticalBias: Float, horizontalBias: Float): ChessPiece? {
-        val searched =  getDefaultChessBoard().
-            map { f -> f.filter { f1 -> f1.position.biasX == horizontalBias && f1.position.biasY == verticalBias && !f1.isDeath } }.
-            filter { f -> f.isNotEmpty() }
-        return if (searched.isNotEmpty()) searched[0][0] else null
+    fun getChessPieceById(biasX: Float, biasY: Float): ChessPiecePosition? {
+        return chessBoard.find { f -> f.verticalBias == biasY && f.horizontalBias == biasX }
     }
 
     fun updateChessBoard(id: Int, targetPosition: ChessPiecePosition): ActionStatus {
-        Log.d("id", id.toString())
-        getDefaultChessBoard().forEach { f -> f.forEach { f1 -> Log.d("po", f1.id.toString()) } }
         val currentPosition = getChessPieceById(id)
-        return if (ActionController().isOk(currentPosition, chessBoardMapping, targetPosition)) {
+        return if (MoveController().verifyStep(currentPosition, chessBoardMapping, targetPosition)) {
             Log.d("move success ", "move:" + currentPosition.chessPieceType.name)
             ActionStatus.SUCCESS
         } else {

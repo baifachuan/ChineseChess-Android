@@ -4,12 +4,12 @@ import android.annotation.SuppressLint
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.media.MediaPlayer
-import android.os.Build
-import android.os.Bundle
+import android.os.*
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
 import android.widget.ImageButton
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -18,6 +18,31 @@ import androidx.constraintlayout.widget.ConstraintLayout
 class GameActivity: AppCompatActivity() {
 
     var onClickMediaPlayer: MediaPlayer? = null
+
+    companion object {
+        const val ROBOT_UPDATE = 1001
+    }
+
+    private val mHandler: Handler = object : Handler(Looper.getMainLooper()) {
+        override fun handleMessage(msg: Message?) {
+            super.handleMessage(msg)
+            when (msg?.what) {
+                ROBOT_UPDATE -> {
+                    val view = findViewById<ImageButton>(StatusModel.robotStepMessage.id)
+                    val fromChessPieceLayoutParams = view.layoutParams as ConstraintLayout.LayoutParams
+                    fromChessPieceLayoutParams.verticalBias = StatusModel.robotStepMessage.targetPosition.verticalBias
+                    fromChessPieceLayoutParams.horizontalBias = StatusModel.robotStepMessage.targetPosition.horizontalBias
+                    view.layoutParams = fromChessPieceLayoutParams
+                    onClickMediaPlayer?.start()
+                }
+                else -> {
+                    Log.e("mHandler", "nothing")
+                }
+            }
+        }
+    }
+
+
 
     @SuppressLint("ClickableViewAccessibility")
     @RequiresApi(Build.VERSION_CODES.N)
@@ -40,67 +65,80 @@ class GameActivity: AppCompatActivity() {
 
         Model.getDefaultChessBoard().map { f1 ->
             f1.map { f ->
-                val imageButton = findViewById<ImageButton>(f.id)
-                imageButton.background = BitmapDrawable(
+                val redesigned = findViewById<ImageButton>(f.id)
+                redesigned.background = BitmapDrawable(
                     resources,
-                    combineImage(BitmapFactory.decodeResource(
+                    ViewHelper.combineImage(BitmapFactory.decodeResource(
                         resources, R.drawable.qizi), BitmapFactory.decodeResource(
                         resources, Model.getResource(f.group, f.chessPieceType))
                     )
                 )
-                val params = imageButton.layoutParams as ConstraintLayout.LayoutParams
-//                Log.d("position", "x: " + f.position.x + "  Y: " + f.position.y)
-//                Log.d("imageButton", "w: " + imageButton.width + "  h: " + imageButton.height)
-                params.horizontalBias = f.position.biasX
-                params.verticalBias = f.position.biasY
-                imageButton.layoutParams = params
-                imageButton.setOnClickListener { view ->
+                val redesignedLayoutParams = redesigned.layoutParams as ConstraintLayout.LayoutParams
+                redesignedLayoutParams.horizontalBias = f.position.biasX
+                redesignedLayoutParams.verticalBias = f.position.biasY
+                redesigned.layoutParams = redesignedLayoutParams
+                redesigned.setOnClickListener { view ->
                     run {
-                        val params1 = view.layoutParams as ConstraintLayout.LayoutParams
-//                        Log.d("view.x", view.x.toString())
-//                        Log.d("view.y", view.y.toString())
-//                        Log.d("layout.biasX", params1.horizontalBias.toString())
-//                        Log.d("layout.biasY", params1.verticalBias.toString())
+                        if (StatusModel.stepMessage.step == Step.ROBOT) return@run
+                        val onClickChessPiece = Model.getChessPieceById(view.id)
 
+                        val onClickViewLayoutParams = view.layoutParams as ConstraintLayout.LayoutParams
+
+                        //这里需要检查，吃掉对方棋子的情况
+                        StatusModel.getChessPieceEvent()?.let {
+                            when (Model.updateChessBoard(
+                                it.chessPiece.id,
+                                ChessPiecePosition(onClickChessPiece.position.x, onClickChessPiece.position.y, onClickChessPiece.position.biasY, onClickChessPiece.position.biasX, onClickChessPiece.id))
+                                ) {
+                                ActionStatus.SUCCESS -> {
+                                    val fromChessPiece = findViewById<ImageButton>(it.chessPiece.id)
+                                    view.visibility = View.INVISIBLE
+                                    Model.getChessPieceById(view.id).isDeath = true
+                                    val fromChessPieceLayoutParams = fromChessPiece.layoutParams as ConstraintLayout.LayoutParams
+                                    fromChessPieceLayoutParams.verticalBias = onClickViewLayoutParams.verticalBias
+                                    fromChessPieceLayoutParams.horizontalBias = onClickViewLayoutParams.horizontalBias
+                                    fromChessPiece.layoutParams = fromChessPieceLayoutParams
+                                    onClickMediaPlayer?.start()
+                                    Model.getChessPieceById(fromChessPiece.id).position.x = Model.getChessPieceById(view.id).position.x
+                                    Model.getChessPieceById(fromChessPiece.id).position.y = Model.getChessPieceById(view.id).position.y
+                                    Model.getChessPieceById(fromChessPiece.id).position.biasX = Model.getChessPieceById(view.id).position.biasX
+                                    Model.getChessPieceById(fromChessPiece.id).position.biasY = Model.getChessPieceById(view.id).position.biasY
+                                    val blinkView = StatusModel.peekBlinkView()
+                                    blinkView?.clearAnimation()
+                                    blinkView?.animation?.cancel()
+                                    StatusModel.clearQueue()
+                                    StatusModel.stepMessage = StepMessage(
+                                        fromChessPiece.id,
+                                        ChessPiecePosition(
+                                            onClickChessPiece.position.x,
+                                            onClickChessPiece.position.y,
+                                            onClickChessPiece.position.biasY,
+                                            onClickChessPiece.position.biasX,
+                                            onClickChessPiece.id),
+                                        Step.ROBOT)
+                                }
+                                else -> {
+                                    StatusModel.putEvent(ChessPieceEvent(Model.getChessPieceById(view.id)))
+                                }
+                            }
+                        } ?: run {
+                            StatusModel.putEvent(ChessPieceEvent(Model.getChessPieceById(view.id)))
+                        }
+
+                        if (onClickChessPiece.group != Group.RED) return@run
                         val blinkView = StatusModel.peekBlinkView()
                         blinkView?.let {
                             blinkView.clearAnimation()
                             blinkView.animation?.cancel()
                             if (blinkView.id != view.id) {
                                 view.startAnimation(ViewHelper.getAlphaAnimationForBlink())
+                            } else {
+                                view.startAnimation(ViewHelper.getAlphaAnimationForBlink())
                             }
                         } ?: run {
                             view.startAnimation(ViewHelper.getAlphaAnimationForBlink())
                         }
                         StatusModel.putBlinkView(view)
-                        StatusModel.putEvent(ChessPieceEvent(Model.getChessPieceById(view.id)))
-
-                        //这里需要检查，吃掉对方棋子的情况
-                        if (StatusModel.isOk(params1.horizontalBias, params1.verticalBias)) {
-                            val fromChessPiece = findViewById<ImageButton>(StatusModel.getChessPieceEvent().chessPiece.id)
-
-                            if (fromChessPiece != null) {
-                                Log.d("existChessPiece", "Found")
-                            } else {
-                                Log.d("existChessPiece", "Not Found")
-                            }
-
-                            view.visibility = View.INVISIBLE
-
-                            val params02 = fromChessPiece.layoutParams as ConstraintLayout.LayoutParams
-                            params02.verticalBias = params1.verticalBias
-                            params02.horizontalBias = params1.horizontalBias
-                            fromChessPiece.layoutParams = params02
-
-                            onClickMediaPlayer?.start()
-
-                            Model.getChessPieceById(fromChessPiece.id).position.x = Model.getChessPieceById(view.id).position.x
-                            Model.getChessPieceById(fromChessPiece.id).position.y = Model.getChessPieceById(view.id).position.y
-
-                            val blinkView = StatusModel.peekBlinkView()
-                            blinkView?.clearAnimation()
-                            blinkView?.animation?.cancel()
-                        }
                     }
                 }
 
@@ -109,102 +147,44 @@ class GameActivity: AppCompatActivity() {
 
 
         constraintLayout.setOnTouchListener { v, event ->
-            StatusModel.putEvent(PositionEvent(Position(event.x, event.y)))
+
+            if (StatusModel.stepMessage.step == Step.ROBOT) return@setOnTouchListener v?.onTouchEvent(event) ?: false
+
             val displayMetrics = DisplayMetrics()
-            this.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics)
-            val qipanWidth = displayMetrics.widthPixels - 20
-            val qipanHeight = displayMetrics.heightPixels / 3 * 2
-
-//            Log.d("pingmu", "displayMetrics.widthPixels:" + displayMetrics.widthPixels + "    displayMetrics.heightPixels:"  + displayMetrics.heightPixels)
-//            Log.d("qipan", "qipanWidth:" + qipanWidth + "    qipanHeight:"  + qipanHeight)
-//            Log.d("constraintLayout", "constraintLayout.w: " + constraintLayout.width + "  constraintLayout.h:" + constraintLayout.height)
-//            Log.d("qizi", "w: " + v.width + "  h:" + v.height)
-
-
-            if (StatusModel.isOk()) {
-                val imageButton = findViewById<ImageButton>(StatusModel.getChessPieceEvent().chessPiece.id)
-                val chessPieceEvent = Model.getNearPosition(event.x, event.y)
-
-
-                when (Model.updateChessBoard(imageButton.id, chessPieceEvent)) {
+            this.windowManager.defaultDisplay.getMetrics(displayMetrics)
+            StatusModel.getChessPieceEvent()?.let {
+                val fromPosition = findViewById<ImageButton>(it.chessPiece.id)
+                val targetPosition = Model.getNearPosition(event.x, event.y)
+                if (Model.getChessPieceById(fromPosition.id).group != Group.RED) return@let
+                when (Model.updateChessBoard(fromPosition.id, targetPosition)) {
                     ActionStatus.SUCCESS -> {
-                        val params = imageButton.layoutParams as ConstraintLayout.LayoutParams
+                        val targetPositionParams = fromPosition.layoutParams as ConstraintLayout.LayoutParams
+                        Log.d("search position", "chessPieceEvent.verticalBias:" + targetPosition.verticalBias + "    chessPieceEvent.verticalBias: " + targetPosition.verticalBias)
+                        targetPositionParams.verticalBias = targetPosition.verticalBias
+                        targetPositionParams.horizontalBias = targetPosition.horizontalBias
+                        fromPosition.layoutParams = targetPositionParams
 
-                        Log.d("search position", "chessPieceEvent.verticalBias:" + chessPieceEvent.verticalBias + "    chessPieceEvent.verticalBias: " + chessPieceEvent.verticalBias)
-                        val existChessPiece = Model.getChessPieceByPosition(chessPieceEvent.verticalBias, chessPieceEvent.horizontalBias)
-                        if (existChessPiece != null) {
-                            existChessPiece.isDeath = true
-                            findViewById<ImageButton>(existChessPiece.id).visibility = View.INVISIBLE
-                            Log.d("existChessPiece", "biasX:" + existChessPiece.position.biasX + "    biasY: " + existChessPiece.position.biasY)
-                        } else {
-                            Log.d("existChessPiece", "Not Found")
-                        }
-
-
-                        params.verticalBias = chessPieceEvent.verticalBias
-                        params.horizontalBias = chessPieceEvent.horizontalBias
-                        imageButton.layoutParams = params
-
-                        Model.getChessPieceById(imageButton.id).position.x = chessPieceEvent.x
-                        Model.getChessPieceById(imageButton.id).position.y = chessPieceEvent.y
-                        Model.getChessPieceById(imageButton.id).position.biasX = chessPieceEvent.horizontalBias
-                        Model.getChessPieceById(imageButton.id).position.biasY = chessPieceEvent.verticalBias
+                        Model.getChessPieceById(fromPosition.id).position.x = targetPosition.x
+                        Model.getChessPieceById(fromPosition.id).position.y = targetPosition.y
+                        Model.getChessPieceById(fromPosition.id).position.biasX = targetPosition.horizontalBias
+                        Model.getChessPieceById(fromPosition.id).position.biasY = targetPosition.verticalBias
                         onClickMediaPlayer?.start()
+                        StatusModel.clearQueue()
+                        StatusModel.stepMessage = StepMessage(fromPosition.id, targetPosition, Step.ROBOT)
+                    }
+                    else -> {
+                        Toast.makeText(this, "不合法的位置", Toast.LENGTH_SHORT).show()
                     }
                 }
 
                 val blinkView = StatusModel.peekBlinkView()
                 blinkView?.clearAnimation()
                 blinkView?.animation?.cancel()
-
-//            val anim = TranslateAnimation(0F, event.biasX - imageButton.biasX, 0F, event.biasY - imageButton.biasY)
-//            anim.fillAfter = true
-//            anim.duration = 2 * 1000
-//            imageButton.startAnimation(anim)
             }
-
 
             v?.onTouchEvent(event) ?: false
         }
-
+        RobotFactory.RobotEye(mHandler).execute()
     }
 
-
-    private fun combineImage(original: Bitmap, overlay: Bitmap, isRotate: Boolean = false): Bitmap {
-        val result = Bitmap.createBitmap(
-            original.width, original
-                .height, Bitmap.Config.ARGB_8888
-        )
-        val canvas = Canvas(result)
-        val paint = Paint()
-        paint.isAntiAlias = true
-        canvas.drawBitmap(
-            original,
-            ((canvas.width - original.width)/2).toFloat(),
-            (canvas.height - original.height)/2.toFloat(),
-            paint)
-
-        val m = Matrix()
-        m.postScale(1F, -1F)
-
-        canvas.drawBitmap(
-            if(isRotate)  convert(overlay) else overlay,
-            ((canvas.width - overlay.width)/2).toFloat(),
-            (canvas.height - overlay.height)/2.toFloat(),
-            paint)
-        return result
-    }
-
-
-    private fun convert(a: Bitmap): Bitmap {
-        val w = a.width
-        val h = a.height
-        val newb = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)// 创建一个新的和SRC长度宽度一样的位图
-        val cv = Canvas(newb)
-        val m = Matrix()
-        m.postScale(1F, -1F)
-        val new2 = Bitmap.createBitmap(a, 0, 0, w, h, m, true)
-        cv.drawBitmap(new2, Rect(0, 0, new2.width, new2.height), Rect(0, 0, w, h), null)
-        return newb
-    }
 }
