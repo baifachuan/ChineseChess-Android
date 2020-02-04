@@ -1,12 +1,13 @@
 package com.fcbai.chess
 
 import android.os.Build
+import android.util.Log
 import android.view.View
 import androidx.annotation.RequiresApi
 import java.util.concurrent.LinkedBlockingDeque
 import kotlin.math.abs
 
-data class Position(var biasX: Float, var biasY: Float, val x: Float = -1F, val y: Float = -1F)
+data class Position(var biasX: Float, var biasY: Float, var x: Float = -1F, var y: Float = -1F)
 
 enum class Group {
     RED, BLACK
@@ -25,7 +26,11 @@ enum class ActionStatus {
     SUCCESS,
     CANNOTMOVE
 }
-data class ChessPiece(val name: String, val position: Position, val group: Group, val id: Int, val chessPieceType: ChessPieceType)
+data class ChessPiece(val name: String, val position: Position,
+                      val group: Group, val id: Int,
+                      val chessPieceType: ChessPieceType,
+                      var isDeath: Boolean = false
+)
 
 data class Soldier(val name: String, val position: Position, val group: Group, val id: Int) //兵
 data class Horse(val name: String, val position: Position, val group: Group, val id: Int) //马
@@ -46,12 +51,25 @@ data class AbsolutePosition(val screenWith: Int, val screenHeight: Int,
 
 object StatusModel {
     var absolutePosition: AbsolutePosition = AbsolutePosition(-1, -1, -1, -1, -1, -1)
-    val blinkViewQueue = LinkedBlockingDeque<View>()
+
+    private val blinkViewQueue = LinkedBlockingDeque<View>()
+
     private val eventQueue: MutableList<Event> = mutableListOf()
-     fun putEvent(event: Event) {
-         eventQueue.removeAll(eventQueue.filter { f -> f.eventName.equals(event.eventName) })
-         eventQueue.add(event)
-     }
+
+    fun peekBlinkView(): View? {
+        val view = blinkViewQueue.peek()
+        blinkViewQueue.remove(view)
+        return view
+    }
+
+    fun putBlinkView(view: View) {
+        blinkViewQueue.push(view)
+    }
+
+    fun putEvent(event: Event) {
+        eventQueue.removeAll(eventQueue.filter { f -> f.eventName.equals(event.eventName) })
+        eventQueue.add(event)
+    }
 
     fun isOk(biasX: Float, biasY: Float): Boolean {
         eventQueue.sortBy { it.timestamp }
@@ -72,10 +90,8 @@ object StatusModel {
     }
 }
 
-class Model {
+object Model {
 
-    private val withSpace = (StatusModel.absolutePosition.screenWith - 20) * 5 / 43
-    private val heightSpace = (StatusModel.absolutePosition.screenHeight / 3 * 2) * 10 / 103
 
     private val soldiers: List<ChessPiece> = listOf(
         ChessPiece("soldier01", Position(0.00F, 0.35F, getXByBias(0.00F), getYByBias(0.35F)), Group.BLACK, R.id.soldier01, ChessPieceType.SOLDIER),
@@ -92,44 +108,44 @@ class Model {
 
 
     private val cars: List<ChessPiece> = listOf(
-        ChessPiece("car01", Position(0.00F, 0.05F), Group.BLACK, R.id.car01, ChessPieceType.CAR),
-        ChessPiece("car02", Position(1.00F, 0.05F), Group.BLACK, R.id.car02, ChessPieceType.CAR),
-        ChessPiece("car03", Position(0.00F, 0.95F), Group.RED, R.id.car03, ChessPieceType.CAR),
-        ChessPiece("car04", Position(1.00F, 0.95F), Group.RED, R.id.car04, ChessPieceType.CAR)
+        ChessPiece("car01", Position(0.00F, 0.05F, getXByBias(0.00F), getYByBias(0.05F)), Group.BLACK, R.id.car01, ChessPieceType.CAR),
+        ChessPiece("car02", Position(1.00F, 0.05F, getXByBias(1.00F), getYByBias(0.05F)), Group.BLACK, R.id.car02, ChessPieceType.CAR),
+        ChessPiece("car03", Position(0.00F, 0.95F, getXByBias(0.00F), getYByBias(0.95F)), Group.RED, R.id.car03, ChessPieceType.CAR),
+        ChessPiece("car04", Position(1.00F, 0.95F, getXByBias(1.00F), getYByBias(0.95F)), Group.RED, R.id.car04, ChessPieceType.CAR)
     )
 
     private val horses: List<ChessPiece> = listOf(
-        ChessPiece("horse01", Position(0.125F, 0.05F), Group.BLACK, R.id.horse01, ChessPieceType.HORSE),
-        ChessPiece("horse02", Position(0.875F, 0.05F), Group.BLACK, R.id.horse02, ChessPieceType.HORSE),
-        ChessPiece("horse03", Position(0.125F, 0.95F), Group.RED, R.id.horse03, ChessPieceType.HORSE),
-        ChessPiece("horse04", Position(0.875F, 0.95F), Group.RED, R.id.horse04, ChessPieceType.HORSE)
+        ChessPiece("horse01", Position(0.125F, 0.05F, getXByBias(0.125F), getYByBias(0.05F)), Group.BLACK, R.id.horse01, ChessPieceType.HORSE),
+        ChessPiece("horse02", Position(0.875F, 0.05F, getXByBias(0.875F), getYByBias(0.05F)), Group.BLACK, R.id.horse02, ChessPieceType.HORSE),
+        ChessPiece("horse03", Position(0.125F, 0.95F, getXByBias(0.125F), getYByBias(0.95F)), Group.RED, R.id.horse03, ChessPieceType.HORSE),
+        ChessPiece("horse04", Position(0.875F, 0.95F, getXByBias(0.875F), getYByBias(0.95F)), Group.RED, R.id.horse04, ChessPieceType.HORSE)
     )
 
     private val elephants: List<ChessPiece> = listOf(
-        ChessPiece("elephant01", Position(0.25F, 0.05F), Group.BLACK, R.id.elephant01, ChessPieceType.ELEPHANT),
-        ChessPiece("elephant02", Position(0.75F, 0.05F), Group.BLACK, R.id.elephant02, ChessPieceType.ELEPHANT),
-        ChessPiece("elephant03", Position(0.25F, 0.95F), Group.RED, R.id.elephant03, ChessPieceType.ELEPHANT),
-        ChessPiece("elephant04", Position(0.75F, 0.95F), Group.RED, R.id.elephant04, ChessPieceType.ELEPHANT)
+        ChessPiece("elephant01", Position(0.25F, 0.05F, getXByBias(0.25F), getYByBias(0.05F)), Group.BLACK, R.id.elephant01, ChessPieceType.ELEPHANT),
+        ChessPiece("elephant02", Position(0.75F, 0.05F, getXByBias(0.75F), getYByBias(0.05F)), Group.BLACK, R.id.elephant02, ChessPieceType.ELEPHANT),
+        ChessPiece("elephant03", Position(0.25F, 0.95F, getXByBias(0.25F), getYByBias(0.95F)), Group.RED, R.id.elephant03, ChessPieceType.ELEPHANT),
+        ChessPiece("elephant04", Position(0.75F, 0.95F, getXByBias(0.75F), getYByBias(0.95F)), Group.RED, R.id.elephant04, ChessPieceType.ELEPHANT)
     )
 
     private val scholars: List<ChessPiece> = listOf(
-        ChessPiece("scholar01", Position(0.375F, 0.05F), Group.BLACK, R.id.scholar01, ChessPieceType.SCHOLAR),
-        ChessPiece("scholar02", Position(0.625F, 0.05F), Group.BLACK, R.id.scholar02, ChessPieceType.SCHOLAR),
-        ChessPiece("scholar03", Position(0.375F, 0.95F), Group.RED, R.id.scholar03, ChessPieceType.SCHOLAR),
-        ChessPiece("scholar04", Position(0.625F, 0.95F), Group.RED, R.id.scholar04, ChessPieceType.SCHOLAR)
+        ChessPiece("scholar01", Position(0.375F, 0.05F, getXByBias(0.375F), getYByBias(0.05F)), Group.BLACK, R.id.scholar01, ChessPieceType.SCHOLAR),
+        ChessPiece("scholar02", Position(0.625F, 0.05F, getXByBias(0.625F), getYByBias(0.05F)), Group.BLACK, R.id.scholar02, ChessPieceType.SCHOLAR),
+        ChessPiece("scholar03", Position(0.375F, 0.95F, getXByBias(0.375F), getYByBias(0.95F)), Group.RED, R.id.scholar03, ChessPieceType.SCHOLAR),
+        ChessPiece("scholar04", Position(0.625F, 0.95F, getXByBias(0.625F), getYByBias(0.95F)), Group.RED, R.id.scholar04, ChessPieceType.SCHOLAR)
     )
 
     private val cannons: List<ChessPiece> = listOf(
-        ChessPiece("cannon01", Position(0.125F, 0.25F), Group.BLACK, R.id.cannon01, ChessPieceType.CANNON),
-        ChessPiece("cannon02", Position(0.875F, 0.25F), Group.BLACK, R.id.cannon02, ChessPieceType.CANNON),
-        ChessPiece("cannon03", Position(0.125F, 0.75F), Group.RED, R.id.cannon03, ChessPieceType.CANNON),
-        ChessPiece("cannon04", Position(0.875F, 0.75F), Group.RED, R.id.cannon04, ChessPieceType.CANNON)
+        ChessPiece("cannon01", Position(0.125F, 0.25F, getXByBias(0.125F), getYByBias(0.25F)), Group.BLACK, R.id.cannon01, ChessPieceType.CANNON),
+        ChessPiece("cannon02", Position(0.875F, 0.25F, getXByBias(0.875F), getYByBias(0.25F)), Group.BLACK, R.id.cannon02, ChessPieceType.CANNON),
+        ChessPiece("cannon03", Position(0.125F, 0.75F, getXByBias(0.125F), getYByBias(0.75F)), Group.RED, R.id.cannon03, ChessPieceType.CANNON),
+        ChessPiece("cannon04", Position(0.875F, 0.75F, getXByBias(0.875F), getYByBias(0.75F)), Group.RED, R.id.cannon04, ChessPieceType.CANNON)
     )
 
 
     private val general: List<ChessPiece> = listOf(
-        ChessPiece("general01", Position(0.5F, 0.05F), Group.BLACK, R.id.general01, ChessPieceType.GENERAL),
-        ChessPiece("general02", Position(0.5F, 0.95F), Group.RED, R.id.general02, ChessPieceType.GENERAL)
+        ChessPiece("general01", Position(0.5F, 0.05F, getXByBias(0.5F), getYByBias(0.05F)), Group.BLACK, R.id.general01, ChessPieceType.GENERAL),
+        ChessPiece("general02", Position(0.5F, 0.95F, getXByBias(0.5F), getYByBias(0.95F)), Group.RED, R.id.general02, ChessPieceType.GENERAL)
     )
 
     private val resourcesMapOfRed = mapOf(
@@ -187,7 +203,7 @@ class Model {
     }
 
 
-    fun getBias(x: Float, y: Float): ChessPiecePosition {
+    fun getNearPosition(x: Float, y: Float): ChessPiecePosition {
         val entity = chessBoard.minBy { abs(it.x - x) + abs(it.y - y) }
         return entity!!
     }
@@ -212,19 +228,21 @@ class Model {
 
     fun getChessPieceByPosition(verticalBias: Float, horizontalBias: Float): ChessPiece? {
         val searched =  getDefaultChessBoard().
-            map { f -> f.filter { f1 -> f1.position.biasX == horizontalBias && f1.position.biasY == verticalBias } }.
+            map { f -> f.filter { f1 -> f1.position.biasX == horizontalBias && f1.position.biasY == verticalBias && !f1.isDeath } }.
             filter { f -> f.isNotEmpty() }
         return if (searched.isNotEmpty()) searched[0][0] else null
     }
 
-    fun updateChessBoard(id: Int, x: Float, y: Float): ActionStatus {
-        val currentPosition = getDefaultChessBoard().map { f -> f.first { f -> f.id == id } }.first()
-        return if (ActionController(currentPosition, x, y).isOk()) {
-            val position = chessBoardMapping[currentPosition.chessPieceType]?.filter { f -> f.name == currentPosition.name }?.get(0)?.position
-            position?.biasX = x
-            position?.biasY = y
+    fun updateChessBoard(id: Int, targetPosition: ChessPiecePosition): ActionStatus {
+        Log.d("id", id.toString())
+        getDefaultChessBoard().forEach { f -> f.forEach { f1 -> Log.d("po", f1.id.toString()) } }
+        val currentPosition = getChessPieceById(id)
+        return if (ActionController().isOk(currentPosition, chessBoardMapping, targetPosition)) {
+            Log.d("move success ", "move:" + currentPosition.chessPieceType.name)
             ActionStatus.SUCCESS
-        } else
+        } else {
+            Log.d("move fail", "move:" + currentPosition.chessPieceType.name)
             ActionStatus.CANNOTMOVE
+        }
     }
 }
