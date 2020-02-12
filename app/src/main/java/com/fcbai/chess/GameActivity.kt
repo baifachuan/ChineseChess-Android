@@ -13,6 +13,7 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
+import com.beust.klaxon.Klaxon
 
 
 class GameActivity: AppCompatActivity() {
@@ -21,24 +22,26 @@ class GameActivity: AppCompatActivity() {
 
     companion object {
         const val ROBOT_UPDATE = 1001
+        const val NETWORK = 1002
     }
 
     private val mHandler: Handler = object : Handler(Looper.getMainLooper()) {
         override fun handleMessage(msg: Message?) {
             super.handleMessage(msg)
-            when (msg?.what) {
-                ROBOT_UPDATE -> {
-                    val view = findViewById<ImageButton>(StatusModel.robotStepMessage.id)
-                    val fromChessPieceLayoutParams = view.layoutParams as ConstraintLayout.LayoutParams
-                    fromChessPieceLayoutParams.verticalBias = StatusModel.robotStepMessage.targetPosition.verticalBias
-                    fromChessPieceLayoutParams.horizontalBias = StatusModel.robotStepMessage.targetPosition.horizontalBias
-                    view.layoutParams = fromChessPieceLayoutParams
-                    onClickMediaPlayer?.start()
+            val notificationMessage = Klaxon().parse<NotificationMessage>(msg?.obj.toString())
+            notificationMessage?.let {
+                if (it.targetPosition.id != -1) {
+                    findViewById<ImageButton>(it.targetPosition.id).visibility = View.INVISIBLE
+                    Model.getChessPieceById(it.targetPosition.id).isDeath = true
                 }
-                else -> {
-                    Log.e("mHandler", "nothing")
-                }
+                val view = findViewById<ImageButton>(it.fromPosition.id)
+                val layout = view.layoutParams as ConstraintLayout.LayoutParams
+                layout.verticalBias = it.targetPosition.verticalBias
+                layout.horizontalBias = it.targetPosition.horizontalBias
+                view.layoutParams = layout
+                onClickMediaPlayer?.start()
             }
+
         }
     }
 
@@ -62,6 +65,15 @@ class GameActivity: AppCompatActivity() {
             79, 79,
             constraintLayout.width - 20, constraintLayout.height / 3 * 2)
 
+
+        StatusModel.gameInfo = GameInfo(1, Group.RED)
+
+        if (StatusModel.gameInfo.group != Group.RED) {
+            val reds = Model.getDefaultChessBoard().flatten().filter { f -> f.group ==Group.RED }
+            val blacks = Model.getDefaultChessBoard().flatten().filter { f -> f.group ==Group.BLACK }
+            reds.forEach { f -> f.group = Group.BLACK }
+            blacks.forEach { f -> f.group = Group.RED }
+        }
 
         Model.getDefaultChessBoard().map { f1 ->
             f1.map { f ->
@@ -125,7 +137,7 @@ class GameActivity: AppCompatActivity() {
                             StatusModel.putEvent(ChessPieceEvent(Model.getChessPieceById(view.id)))
                         }
 
-                        if (onClickChessPiece.group != Group.RED) return@run
+                        if (onClickChessPiece.group != StatusModel.gameInfo.group) return@run
                         val blinkView = StatusModel.peekBlinkView()
                         blinkView?.let {
                             blinkView.clearAnimation()
@@ -155,7 +167,7 @@ class GameActivity: AppCompatActivity() {
             StatusModel.getChessPieceEvent()?.let {
                 val fromPosition = findViewById<ImageButton>(it.chessPiece.id)
                 val targetPosition = Model.getNearPosition(event.x, event.y)
-                if (Model.getChessPieceById(fromPosition.id).group != Group.RED) return@let
+                if (Model.getChessPieceById(fromPosition.id).group != StatusModel.gameInfo.group) return@let
                 when (Model.updateChessBoard(fromPosition.id, targetPosition)) {
                     ActionStatus.SUCCESS -> {
                         val targetPositionParams = fromPosition.layoutParams as ConstraintLayout.LayoutParams

@@ -13,7 +13,6 @@ import androidx.core.view.children
 import androidx.core.view.isVisible
 
 class MainActivity : AppCompatActivity() {
-//    var player: MediaPlayer? = null
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,10 +22,6 @@ class MainActivity : AppCompatActivity() {
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
-//        val startSound = MediaPlayer.create(this, R.raw.startsound)
-//        startSound.isLooping = true
-//        player = startSound
-//        player?.start()
         setContentView(R.layout.activity_main)
         setButtonEvent()
         val constraintLayout = findViewById<ConstraintLayout>(R.id.main_layout)
@@ -56,7 +51,6 @@ class MainActivity : AppCompatActivity() {
         closeSoundButton.setOnClickListener { v ->
             v?.isVisible ?: false
             findViewById<ImageButton>(R.id.open_sound).isVisible = true
-//            if (player?.isPlaying != false) player?.stop()
         }
 
 
@@ -64,12 +58,10 @@ class MainActivity : AppCompatActivity() {
         openSoundButton.setOnClickListener { v ->
             v?.isVisible ?: false
             findViewById<ImageButton>(R.id.close_sound).isVisible = true
-//            if (player?.isPlaying != true) player?.start()
         }
 
         val startGameButton = findViewById<ImageButton>(R.id.start_game)
         startGameButton.setOnClickListener { v ->
-//            player?.stop()
             startActivity(Intent(MainActivity@this, GameActivity::class.java))
         }
     }

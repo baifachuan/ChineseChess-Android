@@ -33,7 +33,7 @@ enum class Step {
 }
 
 data class ChessPiece(val name: String, val position: Position,
-                      val group: Group, val id: Int,
+                      var group: Group, val id: Int,
                       val chessPieceType: ChessPieceType,
                       var isDeath: Boolean = false
 )
@@ -49,17 +49,21 @@ data class Car(val name: String, val position: Position, val group: Group, val i
 open class Event(val timestamp: Long = System.currentTimeMillis(), var eventName: String)
 data class ChessPieceEvent(val chessPiece: ChessPiece): Event(eventName = "ChessPieceEvent")
 data class PositionEvent(val position: Position): Event(eventName = "PositionEvent")
-data class ChessPiecePosition(val x: Float, val y: Float, val verticalBias: Float, val horizontalBias: Float, val id: Int = -1)
+data class ChessPiecePosition(val x: Float, val y: Float, val verticalBias: Float, val horizontalBias: Float, var id: Int = -1)
 data class AbsolutePosition(val screenWith: Int, val screenHeight: Int,
                             val chessPieceWith: Int, val chessPieceHeight: Int,
                             val chessBoardWith: Int, val chessBoardHeight: Int
 )
+
+data class NotificationMessage(var id: Int = -1, var fromPosition: ChessPiecePosition = ChessPiecePosition(-1F, -1F, -1F, -1F), var targetPosition: ChessPiecePosition = ChessPiecePosition(-1F, -1F, -1F, -1F))
+
 data class StepMessage(val id: Int = -1, val targetPosition: ChessPiecePosition = ChessPiecePosition(-1F, -1F, -1F, -1F), val step: Step = Step.HUMAN)
-data class RobotStepMessage(val id: Int = -1, val targetPosition: ChessPiecePosition = ChessPiecePosition(-1F, -1F, -1F, -1F))
+
+data class GameInfo(val id: Int = -1, val group: Group = Group.RED)
 
 object StatusModel {
     var stepMessage: StepMessage = StepMessage()
-    var robotStepMessage = RobotStepMessage()
+    var gameInfo = GameInfo()
     var absolutePosition: AbsolutePosition = AbsolutePosition(-1, -1, -1, -1, -1, -1)
 
     private val blinkViewQueue = LinkedBlockingDeque<View>()
@@ -208,6 +212,9 @@ object Model {
         return chessBoard
     }
 
+    private fun getChessPiece(biasX: Float, biasY: Float): ChessPiece? {
+        return getDefaultChessBoard().flatten().find { f -> f.position.biasX == biasX && f.position.biasY == biasY }
+    }
 
     fun getNearPosition(x: Float, y: Float): ChessPiecePosition {
         val entity = chessBoard.minBy { abs(it.x - x) + abs(it.y - y) }
@@ -232,7 +239,12 @@ object Model {
     }
 
     fun getChessPieceById(biasX: Float, biasY: Float): ChessPiecePosition? {
-        return chessBoard.find { f -> f.verticalBias == biasY && f.horizontalBias == biasX }
+        val chessPiece = getChessPiece(biasX, String.format("%.2f", biasY).toFloat())
+        val chessPiecePosition = chessBoard.find { f -> f.verticalBias == String.format("%.2f", biasY).toFloat() && f.horizontalBias == biasX }
+        chessPiece?.let {
+            chessPiecePosition?.id = it.id
+        }
+        return chessPiecePosition
     }
 
     fun updateChessBoard(id: Int, targetPosition: ChessPiecePosition): ActionStatus {

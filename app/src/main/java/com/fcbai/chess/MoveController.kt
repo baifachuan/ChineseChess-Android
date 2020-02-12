@@ -42,7 +42,7 @@ class MoveController {
             }
             ChessPieceType.SOLDIER -> {
 
-                return if (chessPiece.group == Group.RED) {
+                return if (chessPiece.group == StatusModel.gameInfo.group) {
                     if (currentBiasY < 0.55) {
                         xMove <= 0.13 && yMove <= 0.101 && targetBiasY <= currentBiasY && (xMove == 0F || yMove == 0F)
                     } else {
@@ -136,7 +136,7 @@ class MoveController {
             }
 
             ChessPieceType.GENERAL -> {
-                return if (chessPiece.group == Group.RED) {
+                return if (chessPiece.group == StatusModel.gameInfo.group) {
                     val minX = 0.374F
                     val maxX = 0.6251F
                     val minY = 0.749F
@@ -155,7 +155,7 @@ class MoveController {
             ChessPieceType.SCHOLAR -> {
                 val x = String.format("%.2f", abs(BigDecimal(xMove.toString()).subtract(BigDecimal(0.13F.toString())).toFloat()).toDouble())
                 val y = String.format("%.2f", abs(BigDecimal(yMove.toString()).subtract(BigDecimal(0.1F.toString())).toFloat()).toDouble())
-                return if (chessPiece.group == Group.RED) {
+                return if (chessPiece.group == StatusModel.gameInfo.group) {
                     val minX = 0.374F
                     val maxX = 0.6251F
                     val minY = 0.749F

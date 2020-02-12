@@ -2,7 +2,9 @@ package com.fcbai.chess
 
 import android.os.AsyncTask
 import android.os.Handler
+import android.os.Message
 import android.util.Log
+import com.beust.klaxon.Klaxon
 
 interface Robot {
     fun run(id: Int, targetPosition: ChessPiecePosition)
@@ -16,12 +18,25 @@ class RuleRobot(mHandler: Handler): Robot {
         val soldier05 = myChessPieces.first { f -> f.name == "soldier05" }
         val chessPiecePosition = Model.getChessPieceById(soldier05.position.biasX, soldier05.position.biasY + 0.1F)
         chessPiecePosition?.let {
+
+           val from =  ChessPiecePosition(
+                soldier05.position.x,
+                soldier05.position.y,
+                soldier05.position.biasY,
+                soldier05.position.biasX,
+                soldier05.id)
+
             soldier05.position.x = it.x
             soldier05.position.y = it.y
             soldier05.position.biasX = it.horizontalBias
             soldier05.position.biasY = it.verticalBias
-            StatusModel.robotStepMessage = RobotStepMessage(soldier05.id, it)
-            mHandler.sendEmptyMessage(GameActivity.ROBOT_UPDATE)
+
+            val notificationMessage = NotificationMessage(-1, from, it)
+
+            val msg = Message()
+            msg.what = GameActivity.ROBOT_UPDATE
+            msg.obj = Klaxon().toJsonString(notificationMessage)
+            mHandler.sendMessage(msg)
         }
     }
 
