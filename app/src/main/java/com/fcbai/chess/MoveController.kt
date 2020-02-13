@@ -5,20 +5,24 @@ import kotlin.math.*
 
 class MoveController {
 
-    fun verifyStep(chessPiece: ChessPiece, mapping: Map<ChessPieceType, List<ChessPiece>>, targetPosition: ChessPiecePosition): Boolean {
+    fun verifyStep(from: ChessPiece, mapping: Map<ChessPieceType, List<ChessPiece>>, to: Position): Boolean {
 
-        val currentBiasX = chessPiece.position.biasX
-        val currentBiasY = chessPiece.position.biasY
-        val targetBiasX = targetPosition.horizontalBias
-        val targetBiasY = targetPosition.verticalBias
+        val currentBiasX = from.position.biasX
+        val currentBiasY = from.position.biasY
+        val targetBiasX = to.biasX
+        val targetBiasY = to.biasY
 
         val xMove = String.format("%.2f", abs(BigDecimal(targetBiasX.toString()).subtract(BigDecimal(currentBiasX.toString())).toFloat()).toDouble()).toFloat()
         val yMove = String.format("%.2f", abs(BigDecimal(targetBiasY.toString()).subtract(BigDecimal(currentBiasY.toString())).toFloat()).toDouble()).toFloat()
 
-        if (targetPosition.id != -1 && Model.getChessPieceById(targetPosition.id).group == chessPiece.group) {
-            return false
+        val exist = Model.getChessPiece(to.biasX, to.biasY)
+        exist?.let {
+            if (it.group == from.group) {
+                return false
+            }
         }
-        when (chessPiece.chessPieceType) {
+
+        when (from.chessPieceType) {
             ChessPieceType.HORSE -> {
                 var hasConstraint = 0
                 if (String.format("%.2f", abs(BigDecimal(targetBiasX.toString()).subtract(BigDecimal(currentBiasX.toString())).toFloat()).toDouble()) == "0.25") {
@@ -42,7 +46,7 @@ class MoveController {
             }
             ChessPieceType.SOLDIER -> {
 
-                return if (chessPiece.group == StatusModel.gameInfo.group) {
+                return if (from.group == StatusModel.gameInfo.group) {
                     if (currentBiasY < 0.55) {
                         xMove <= 0.13 && yMove <= 0.101 && targetBiasY <= currentBiasY && (xMove == 0F || yMove == 0F)
                     } else {
@@ -80,8 +84,7 @@ class MoveController {
             }
 
             ChessPieceType.CANNON -> {
-
-                if (targetPosition.id != -1) {
+                exist?.let {
                     if (abs(targetBiasX - currentBiasX) > 0) {
                         return mapping.values.flatMap { f ->
                             f.filter { f1 ->
@@ -101,7 +104,7 @@ class MoveController {
                             }
                         }.count() == 1  && currentBiasX == targetBiasX
                     }
-                } else {
+                } ?: run {
                     if (abs(targetBiasX - currentBiasX) > 0) {
                         return mapping.values.map { f ->
                             f.filter { f1 ->
@@ -136,7 +139,7 @@ class MoveController {
             }
 
             ChessPieceType.GENERAL -> {
-                return if (chessPiece.group == StatusModel.gameInfo.group) {
+                return if (from.group == StatusModel.gameInfo.group) {
                     val minX = 0.374F
                     val maxX = 0.6251F
                     val minY = 0.749F
@@ -155,7 +158,7 @@ class MoveController {
             ChessPieceType.SCHOLAR -> {
                 val x = String.format("%.2f", abs(BigDecimal(xMove.toString()).subtract(BigDecimal(0.13F.toString())).toFloat()).toDouble())
                 val y = String.format("%.2f", abs(BigDecimal(yMove.toString()).subtract(BigDecimal(0.1F.toString())).toFloat()).toDouble())
-                return if (chessPiece.group == StatusModel.gameInfo.group) {
+                return if (from.group == StatusModel.gameInfo.group) {
                     val minX = 0.374F
                     val maxX = 0.6251F
                     val minY = 0.749F

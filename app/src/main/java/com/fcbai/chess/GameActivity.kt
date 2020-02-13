@@ -1,7 +1,7 @@
 package com.fcbai.chess
 
 import android.annotation.SuppressLint
-import android.graphics.*
+import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.media.MediaPlayer
 import android.os.*
@@ -18,11 +18,10 @@ import com.beust.klaxon.Klaxon
 
 class GameActivity: AppCompatActivity() {
 
-    var onClickMediaPlayer: MediaPlayer? = null
+    var onClickMediaPlayer: MediaPlayer = MediaPlayer.create(this, R.raw.go)
 
     companion object {
-        const val ROBOT_UPDATE = 1001
-        const val NETWORK = 1002
+        const val AI_UPDATE = 1001
     }
 
     private val mHandler: Handler = object : Handler(Looper.getMainLooper()) {
@@ -30,21 +29,26 @@ class GameActivity: AppCompatActivity() {
             super.handleMessage(msg)
             val notificationMessage = Klaxon().parse<NotificationMessage>(msg?.obj.toString())
             notificationMessage?.let {
-                if (it.targetPosition.id != -1) {
-                    findViewById<ImageButton>(it.targetPosition.id).visibility = View.INVISIBLE
-                    Model.getChessPieceById(it.targetPosition.id).isDeath = true
+
+                Model.getChessPiece(it.to.biasX, it.to.biasY)?.let { exist ->
+                    findViewById<ImageButton>(exist.id).visibility = View.INVISIBLE
+                    exist.isDeath = true
                 }
-                val view = findViewById<ImageButton>(it.fromPosition.id)
-                val layout = view.layoutParams as ConstraintLayout.LayoutParams
-                layout.verticalBias = it.targetPosition.verticalBias
-                layout.horizontalBias = it.targetPosition.horizontalBias
-                view.layoutParams = layout
-                onClickMediaPlayer?.start()
+
+                Model.getChessPiece(it.from.biasX, it.from.biasY)?.let { exist ->
+                    val view = findViewById<ImageButton>(exist.id)
+                    val layout = view.layoutParams as ConstraintLayout.LayoutParams
+                    layout.verticalBias = it.to.biasY
+                    layout.horizontalBias = it.to.biasX
+                    view.layoutParams = layout
+                    exist.position = it.to
+                    onClickMediaPlayer.start()
+                }
+
             }
 
         }
     }
-
 
 
     @SuppressLint("ClickableViewAccessibility")
@@ -52,9 +56,7 @@ class GameActivity: AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game)
-
-        onClickMediaPlayer = MediaPlayer.create(this, R.raw.go)
-        onClickMediaPlayer?.isLooping = false
+        onClickMediaPlayer.isLooping = false
 
         val constraintLayout = findViewById<ConstraintLayout>(R.id.game_panel)
         val displayMetrics = DisplayMetrics()
@@ -92,49 +94,48 @@ class GameActivity: AppCompatActivity() {
                 redesigned.setOnClickListener { view ->
                     run {
                         if (StatusModel.stepMessage.step == Step.ROBOT) return@run
-                        val onClickChessPiece = Model.getChessPieceById(view.id)
+                        val onClickChessPiece = Model.getChessPiece(view.id)
 
-                        val onClickViewLayoutParams = view.layoutParams as ConstraintLayout.LayoutParams
+                        val to = Position(
+                            biasY = onClickChessPiece.position.biasY,
+                            biasX = onClickChessPiece.position.biasX,
+                            x = onClickChessPiece.position.x,
+                            y = onClickChessPiece.position.y
+                        )
+
+                        val toLayout = view.layoutParams as ConstraintLayout.LayoutParams
 
                         //这里需要检查，吃掉对方棋子的情况
                         StatusModel.getChessPieceEvent()?.let {
-                            when (Model.updateChessBoard(
-                                it.chessPiece.id,
-                                ChessPiecePosition(onClickChessPiece.position.x, onClickChessPiece.position.y, onClickChessPiece.position.biasY, onClickChessPiece.position.biasX, onClickChessPiece.id))
-                                ) {
+
+                            val from = it.chessPiece.position
+
+                            when (Model.updateChessBoard(it.chessPiece.id, to)) {
+
                                 ActionStatus.SUCCESS -> {
-                                    val fromChessPiece = findViewById<ImageButton>(it.chessPiece.id)
+                                    val fromView = findViewById<ImageButton>(it.chessPiece.id)
                                     view.visibility = View.INVISIBLE
-                                    Model.getChessPieceById(view.id).isDeath = true
-                                    val fromChessPieceLayoutParams = fromChessPiece.layoutParams as ConstraintLayout.LayoutParams
-                                    fromChessPieceLayoutParams.verticalBias = onClickViewLayoutParams.verticalBias
-                                    fromChessPieceLayoutParams.horizontalBias = onClickViewLayoutParams.horizontalBias
-                                    fromChessPiece.layoutParams = fromChessPieceLayoutParams
+                                    Model.getChessPiece(view.id).isDeath = true
+                                    val fromLayout = fromView.layoutParams as ConstraintLayout.LayoutParams
+                                    fromLayout.verticalBias = toLayout.verticalBias
+                                    fromLayout.horizontalBias = toLayout.horizontalBias
+                                    fromView.layoutParams = fromLayout
                                     onClickMediaPlayer?.start()
-                                    Model.getChessPieceById(fromChessPiece.id).position.x = Model.getChessPieceById(view.id).position.x
-                                    Model.getChessPieceById(fromChessPiece.id).position.y = Model.getChessPieceById(view.id).position.y
-                                    Model.getChessPieceById(fromChessPiece.id).position.biasX = Model.getChessPieceById(view.id).position.biasX
-                                    Model.getChessPieceById(fromChessPiece.id).position.biasY = Model.getChessPieceById(view.id).position.biasY
+
+                                    it.chessPiece.position = to
+
                                     val blinkView = StatusModel.peekBlinkView()
                                     blinkView?.clearAnimation()
                                     blinkView?.animation?.cancel()
                                     StatusModel.clearQueue()
-                                    StatusModel.stepMessage = StepMessage(
-                                        fromChessPiece.id,
-                                        ChessPiecePosition(
-                                            onClickChessPiece.position.x,
-                                            onClickChessPiece.position.y,
-                                            onClickChessPiece.position.biasY,
-                                            onClickChessPiece.position.biasX,
-                                            onClickChessPiece.id),
-                                        Step.ROBOT)
+                                    StatusModel.stepMessage = NotificationMessage(from, to, Step.ROBOT)
                                 }
                                 else -> {
-                                    StatusModel.putEvent(ChessPieceEvent(Model.getChessPieceById(view.id)))
+                                    StatusModel.putEvent(ChessPieceEvent(Model.getChessPiece(view.id)))
                                 }
                             }
                         } ?: run {
-                            StatusModel.putEvent(ChessPieceEvent(Model.getChessPieceById(view.id)))
+                            StatusModel.putEvent(ChessPieceEvent(Model.getChessPiece(view.id)))
                         }
 
                         if (onClickChessPiece.group != StatusModel.gameInfo.group) return@run
@@ -165,24 +166,21 @@ class GameActivity: AppCompatActivity() {
             val displayMetrics = DisplayMetrics()
             this.windowManager.defaultDisplay.getMetrics(displayMetrics)
             StatusModel.getChessPieceEvent()?.let {
-                val fromPosition = findViewById<ImageButton>(it.chessPiece.id)
-                val targetPosition = Model.getNearPosition(event.x, event.y)
-                if (Model.getChessPieceById(fromPosition.id).group != StatusModel.gameInfo.group) return@let
-                when (Model.updateChessBoard(fromPosition.id, targetPosition)) {
+                val fromView = findViewById<ImageButton>(it.chessPiece.id)
+                val to = Model.getNearPosition(event.x, event.y)
+                if (Model.getChessPiece(fromView.id).group != StatusModel.gameInfo.group) return@let
+                when (Model.updateChessBoard(fromView.id, to)) {
                     ActionStatus.SUCCESS -> {
-                        val targetPositionParams = fromPosition.layoutParams as ConstraintLayout.LayoutParams
-                        Log.d("search position", "chessPieceEvent.verticalBias:" + targetPosition.verticalBias + "    chessPieceEvent.verticalBias: " + targetPosition.verticalBias)
-                        targetPositionParams.verticalBias = targetPosition.verticalBias
-                        targetPositionParams.horizontalBias = targetPosition.horizontalBias
-                        fromPosition.layoutParams = targetPositionParams
-
-                        Model.getChessPieceById(fromPosition.id).position.x = targetPosition.x
-                        Model.getChessPieceById(fromPosition.id).position.y = targetPosition.y
-                        Model.getChessPieceById(fromPosition.id).position.biasX = targetPosition.horizontalBias
-                        Model.getChessPieceById(fromPosition.id).position.biasY = targetPosition.verticalBias
+                        val toLayout = fromView.layoutParams as ConstraintLayout.LayoutParams
+                        Log.d("search position", "chessPieceEvent.verticalBias:" + to.biasY + "    chessPieceEvent.verticalBias: " + to.biasX)
+                        toLayout.verticalBias = to.biasY
+                        toLayout.horizontalBias = to.biasX
+                        fromView.layoutParams = toLayout
+                        val from = Model.getChessPiece(fromView.id).position
+                        Model.getChessPiece(fromView.id).position = to
                         onClickMediaPlayer?.start()
                         StatusModel.clearQueue()
-                        StatusModel.stepMessage = StepMessage(fromPosition.id, targetPosition, Step.ROBOT)
+                        StatusModel.stepMessage = NotificationMessage(from, to, Step.ROBOT)
                     }
                     else -> {
                         Toast.makeText(this, "不合法的位置", Toast.LENGTH_SHORT).show()
@@ -196,7 +194,8 @@ class GameActivity: AppCompatActivity() {
 
             v?.onTouchEvent(event) ?: false
         }
-        RobotFactory.RobotEye(mHandler).execute()
+//        LoginAsyncTask().execute()
+        AIInvokeAsyncTask(mHandler).execute()
     }
 
 }

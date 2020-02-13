@@ -7,7 +7,9 @@ import androidx.annotation.RequiresApi
 import java.util.concurrent.LinkedBlockingDeque
 import kotlin.math.abs
 
-data class Position(var biasX: Float, var biasY: Float, var x: Float = -1F, var y: Float = -1F)
+data class Position(val biasX: Float = -1F, val biasY: Float = -1F,
+                    val x: Float = -1F, val y: Float = -1F,
+                    val horizontalPos: Int = 0, val verticalPos: Int = 0)
 
 enum class Group {
     RED, BLACK
@@ -32,37 +34,33 @@ enum class Step {
     HUMAN
 }
 
-data class ChessPiece(val name: String, val position: Position,
+data class ChessPiece(val name: String, var position: Position,
                       var group: Group, val id: Int,
                       val chessPieceType: ChessPieceType,
                       var isDeath: Boolean = false
 )
 
-data class Soldier(val name: String, val position: Position, val group: Group, val id: Int) //兵
-data class Horse(val name: String, val position: Position, val group: Group, val id: Int) //马
-data class Cannon(val name: String, val position: Position, val group: Group, val id: Int) //炮
-data class Elephant(val name: String, val position: Position, val group: Group, val id: Int) //相
-data class Scholar(val name: String, val position: Position, val group: Group, val id: Int) //仕
-data class General(val name: String, val position: Position, val group: Group, val id: Int) //将
-data class Car(val name: String, val position: Position, val group: Group, val id: Int) //车
-
 open class Event(val timestamp: Long = System.currentTimeMillis(), var eventName: String)
 data class ChessPieceEvent(val chessPiece: ChessPiece): Event(eventName = "ChessPieceEvent")
-data class PositionEvent(val position: Position): Event(eventName = "PositionEvent")
-data class ChessPiecePosition(val x: Float, val y: Float, val verticalBias: Float, val horizontalBias: Float, var id: Int = -1)
+//
+//data class ChessPiecePosition(val x: Float, val y: Float,
+//                              val verticalBias: Float, val horizontalBias: Float,
+//                              var id: Int = -1,
+//                              var horizontal: Int = 0, var vertical: Int = 0)
+
 data class AbsolutePosition(val screenWith: Int, val screenHeight: Int,
                             val chessPieceWith: Int, val chessPieceHeight: Int,
                             val chessBoardWith: Int, val chessBoardHeight: Int
 )
 
-data class NotificationMessage(var id: Int = -1, var fromPosition: ChessPiecePosition = ChessPiecePosition(-1F, -1F, -1F, -1F), var targetPosition: ChessPiecePosition = ChessPiecePosition(-1F, -1F, -1F, -1F))
-
-data class StepMessage(val id: Int = -1, val targetPosition: ChessPiecePosition = ChessPiecePosition(-1F, -1F, -1F, -1F), val step: Step = Step.HUMAN)
+data class NotificationMessage(var from: Position = Position(),
+                               var to: Position = Position(),
+                               val step: Step = Step.HUMAN)
 
 data class GameInfo(val id: Int = -1, val group: Group = Group.RED)
 
 object StatusModel {
-    var stepMessage: StepMessage = StepMessage()
+    var stepMessage: NotificationMessage = NotificationMessage()
     var gameInfo = GameInfo()
     var absolutePosition: AbsolutePosition = AbsolutePosition(-1, -1, -1, -1, -1, -1)
 
@@ -158,7 +156,7 @@ object Model {
         ChessPiece("general02", Position(0.5F, 0.95F, getXByBias(0.5F), getYByBias(0.95F)), Group.RED, R.id.general02, ChessPieceType.GENERAL)
     )
 
-    private val resourcesMapOfRed = mapOf(
+    private val redResources = mapOf(
         ChessPieceType.SOLDIER to R.drawable.hongzu,
         ChessPieceType.CAR to R.drawable.hongju,
         ChessPieceType.HORSE to R.drawable.hongma,
@@ -168,7 +166,7 @@ object Model {
         ChessPieceType.GENERAL to R.drawable.hongjiang
     )
 
-    private val resourcesMapOfBlack = mapOf(
+    private val blackResources = mapOf(
         ChessPieceType.SOLDIER to R.drawable.heibing,
         ChessPieceType.CAR to R.drawable.heiju,
         ChessPieceType.HORSE to R.drawable.heima,
@@ -178,7 +176,7 @@ object Model {
         ChessPieceType.GENERAL to R.drawable.heishuai
     )
 
-    private val chessBoardMapping = mapOf(
+    private val boardLayout = mapOf(
         ChessPieceType.SOLDIER to soldiers,
         ChessPieceType.CAR to cars,
         ChessPieceType.HORSE to horses,
@@ -188,7 +186,7 @@ object Model {
         ChessPieceType.GENERAL to general
     )
 
-    private val chessBoard: MutableList<ChessPiecePosition> = calculateChessBoardPosition()
+    private val chessBoard: MutableList<Position> = calculateBoard()
 
     private fun getXByBias(biasX: Float): Float {
         return biasX * StatusModel.absolutePosition.screenWith - 2 * biasX * StatusModel.absolutePosition.chessBoardWith / 2 + StatusModel.absolutePosition.chessBoardWith / 2
@@ -198,58 +196,57 @@ object Model {
         return biasY * StatusModel.absolutePosition.screenHeight - 2 * biasY * StatusModel.absolutePosition.chessBoardHeight / 2 + StatusModel.absolutePosition.chessBoardHeight / 2
     }
 
-    private fun calculateChessBoardPosition(): MutableList<ChessPiecePosition>  {
-        val chessBoard: MutableList<ChessPiecePosition> = mutableListOf()
+    private fun calculateBoard(): MutableList<Position>  {
+        val chessBoard: MutableList<Position> = mutableListOf()
         loop@ for (j in 1..9) {
             loop@ for (i in 0..8) {
-                val verticalBias = (0.05F + 0.1 * j).toFloat()
-                val horizontalBias = 0.125F * i
-                val x = horizontalBias * StatusModel.absolutePosition.screenWith - 2 * horizontalBias * StatusModel.absolutePosition.chessBoardWith / 2 + StatusModel.absolutePosition.chessBoardWith / 2
-                val y = verticalBias * StatusModel.absolutePosition.screenHeight - 2 * verticalBias * StatusModel.absolutePosition.chessBoardHeight / 2 + StatusModel.absolutePosition.chessBoardHeight / 2
-                chessBoard.add(ChessPiecePosition(x, y, verticalBias, horizontalBias))
+                val biasY = (0.05F + 0.1 * j).toFloat()
+                val biasX = 0.125F * i
+                val x = biasX * StatusModel.absolutePosition.screenWith - 2 * biasX * StatusModel.absolutePosition.chessBoardWith / 2 + StatusModel.absolutePosition.chessBoardWith / 2
+                val y = biasY * StatusModel.absolutePosition.screenHeight - 2 * biasY * StatusModel.absolutePosition.chessBoardHeight / 2 + StatusModel.absolutePosition.chessBoardHeight / 2
+                chessBoard.add(Position(biasX, biasY, x, y, 8 - i, 9 - j))
             }
         }
         return chessBoard
     }
 
-    private fun getChessPiece(biasX: Float, biasY: Float): ChessPiece? {
+    fun getChessPiece(biasX: Float, biasY: Float): ChessPiece? {
         return getDefaultChessBoard().flatten().find { f -> f.position.biasX == biasX && f.position.biasY == biasY }
     }
 
-    fun getNearPosition(x: Float, y: Float): ChessPiecePosition {
-        val entity = chessBoard.minBy { abs(it.x - x) + abs(it.y - y) }
-        return entity!!
+//    fun action2Notification(action: String): NotificationMessage {
+//        val posInfo = action.toCharArray()
+//        chessBoard.filter { f -> f.horizontal }
+//    }
+
+    fun getNearPosition(x: Float, y: Float): Position {
+        return chessBoard.minBy { abs(it.x - x) + abs(it.y - y) }!!
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
     fun getResource(group: Group, chessPieceType: ChessPieceType): Int {
         return if (group != Group.RED)
-            resourcesMapOfBlack.getOrDefault(chessPieceType, R.drawable.hongzu)
+            blackResources.getOrDefault(chessPieceType, R.drawable.hongzu)
         else
-            resourcesMapOfRed.getOrDefault(chessPieceType, R.drawable.hongzu)
+            redResources.getOrDefault(chessPieceType, R.drawable.hongzu)
     }
     fun getDefaultChessBoard(): List<List<ChessPiece>> {
         return listOf(soldiers, cars, horses, general, elephants, cannons, scholars)
     }
 
-    fun getChessPieceById(id: Int): ChessPiece {
+    fun getChessPiece(id: Int): ChessPiece {
         return getDefaultChessBoard().
             map { f -> f.filter { f1 -> f1.id == id } }.
             filter { f -> f.isNotEmpty() }[0][0]
     }
 
-    fun getChessPieceById(biasX: Float, biasY: Float): ChessPiecePosition? {
-        val chessPiece = getChessPiece(biasX, String.format("%.2f", biasY).toFloat())
-        val chessPiecePosition = chessBoard.find { f -> f.verticalBias == String.format("%.2f", biasY).toFloat() && f.horizontalBias == biasX }
-        chessPiece?.let {
-            chessPiecePosition?.id = it.id
-        }
-        return chessPiecePosition
+    fun getPosition(biasX: Float, biasY: Float): Position? {
+        return chessBoard.find { f -> f.biasY == String.format("%.2f", biasY).toFloat() && f.biasX == biasX }
     }
 
-    fun updateChessBoard(id: Int, targetPosition: ChessPiecePosition): ActionStatus {
-        val currentPosition = getChessPieceById(id)
-        return if (MoveController().verifyStep(currentPosition, chessBoardMapping, targetPosition)) {
+    fun updateChessBoard(id: Int, to: Position): ActionStatus {
+        val currentPosition = getChessPiece(id)
+        return if (MoveController().verifyStep(currentPosition, boardLayout, to)) {
             Log.d("move success ", "move:" + currentPosition.chessPieceType.name)
             ActionStatus.SUCCESS
         } else {

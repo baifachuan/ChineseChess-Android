@@ -32,6 +32,9 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     implementation 'com.beust:klaxon:5.0.1'
     implementation 'com.github.kittinunf.fuel:fuel:2.2.1'
+    implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.0'
+    implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
+    implementation group: 'org.apache.activemq', name: 'activemq-client', version: '5.9.0'
     androidTestImplementation 'androidx.test:runner:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
 }
