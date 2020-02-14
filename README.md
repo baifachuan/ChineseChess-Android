@@ -12,3 +12,8 @@
 
 人操作为红棋
 AI为黑棋
+
+
+![样例图片](screenshots/example.png)
+![样例图片](screenshots/example01.png)
+![样例图片](screenshots/example002.png)
