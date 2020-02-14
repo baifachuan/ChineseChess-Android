@@ -14,11 +14,17 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.beust.klaxon.Klaxon
+import com.google.gson.Gson
+import org.apache.http.params.HttpConnectionParams.setConnectionTimeout
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions
+import org.eclipse.paho.android.service.MqttAndroidClient
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient
+import org.eclipse.paho.client.mqttv3.MqttMessage
 
 
 class GameActivity: AppCompatActivity() {
 
-    var onClickMediaPlayer: MediaPlayer = MediaPlayer.create(this, R.raw.go)
+    var onClickMediaPlayer: MediaPlayer? = null
 
     companion object {
         const val AI_UPDATE = 1001
@@ -42,7 +48,7 @@ class GameActivity: AppCompatActivity() {
                     layout.horizontalBias = it.to.biasX
                     view.layoutParams = layout
                     exist.position = it.to
-                    onClickMediaPlayer.start()
+                    onClickMediaPlayer?.start()
                 }
 
             }
@@ -56,11 +62,28 @@ class GameActivity: AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game)
-        onClickMediaPlayer.isLooping = false
+        onClickMediaPlayer = MediaPlayer.create(this, R.raw.go)
+        onClickMediaPlayer?.isLooping = false
 
         val constraintLayout = findViewById<ConstraintLayout>(R.id.game_panel)
         val displayMetrics = DisplayMetrics()
         this.windowManager.defaultDisplay.getMetrics(displayMetrics)
+
+        val client = MqttAndroidClient(applicationContext, "tcp://10.0.2.2:1883", MqttAsyncClient.generateClientId())
+
+        // 设置MQTT监听并且接受消息
+        client.setCallback(MQttCallbackHandler(mHandler))
+        //Mqtt的一些设置
+        val conOpt = MqttConnectOptions()
+        conOpt.setAutomaticReconnect(true)
+        // 清除缓存
+        conOpt.setCleanSession(true)
+        // 设置超时时间，单位：秒
+        conOpt.setConnectionTimeout(10)
+        // 心跳包发送间隔，单位：秒
+        conOpt.setKeepAliveInterval(20)
+
+        client.connect(conOpt, null, MQTTIMqttActionListener())
 
         StatusModel.absolutePosition = AbsolutePosition(
             displayMetrics.widthPixels, displayMetrics.heightPixels,
@@ -93,7 +116,8 @@ class GameActivity: AppCompatActivity() {
                 redesigned.layoutParams = redesignedLayoutParams
                 redesigned.setOnClickListener { view ->
                     run {
-                        if (StatusModel.stepMessage.step == Step.ROBOT) return@run
+
+                        if (StatusModel.stepMessage.step == Step.AI) return@run
                         val onClickChessPiece = Model.getChessPiece(view.id)
 
                         val to = Position(
@@ -128,7 +152,7 @@ class GameActivity: AppCompatActivity() {
                                     blinkView?.clearAnimation()
                                     blinkView?.animation?.cancel()
                                     StatusModel.clearQueue()
-                                    StatusModel.stepMessage = NotificationMessage(from, to, Step.ROBOT)
+                                    StatusModel.stepMessage = NotificationMessage(from, to, Step.AI)
                                 }
                                 else -> {
                                     StatusModel.putEvent(ChessPieceEvent(Model.getChessPiece(view.id)))
@@ -161,7 +185,7 @@ class GameActivity: AppCompatActivity() {
 
         constraintLayout.setOnTouchListener { v, event ->
 
-            if (StatusModel.stepMessage.step == Step.ROBOT) return@setOnTouchListener v?.onTouchEvent(event) ?: false
+            if (StatusModel.stepMessage.step == Step.AI) return@setOnTouchListener v?.onTouchEvent(event) ?: false
 
             val displayMetrics = DisplayMetrics()
             this.windowManager.defaultDisplay.getMetrics(displayMetrics)
@@ -176,11 +200,13 @@ class GameActivity: AppCompatActivity() {
                         toLayout.verticalBias = to.biasY
                         toLayout.horizontalBias = to.biasX
                         fromView.layoutParams = toLayout
-                        val from = Model.getChessPiece(fromView.id).position
+
+                        val fromPos = Model.getChessPiece(fromView.id).position
+                        val from = Model.getPosition(fromPos.biasX, fromPos.biasY)
                         Model.getChessPiece(fromView.id).position = to
                         onClickMediaPlayer?.start()
                         StatusModel.clearQueue()
-                        StatusModel.stepMessage = NotificationMessage(from, to, Step.ROBOT)
+                        StatusModel.stepMessage = NotificationMessage(from!!, to, Step.AI)
                     }
                     else -> {
                         Toast.makeText(this, "不合法的位置", Toast.LENGTH_SHORT).show()
@@ -194,8 +220,8 @@ class GameActivity: AppCompatActivity() {
 
             v?.onTouchEvent(event) ?: false
         }
-//        LoginAsyncTask().execute()
-        AIInvokeAsyncTask(mHandler).execute()
+        LoginAsyncTask().execute()
+        AIInvokeAsyncTask(mHandler, client).execute()
     }
 
 }

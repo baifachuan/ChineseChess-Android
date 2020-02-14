@@ -30,8 +30,9 @@ enum class ActionStatus {
 }
 
 enum class Step {
-    ROBOT,
-    HUMAN
+    AI,
+    HUMAN,
+    WATTING
 }
 
 data class ChessPiece(val name: String, var position: Position,
@@ -42,16 +43,22 @@ data class ChessPiece(val name: String, var position: Position,
 
 open class Event(val timestamp: Long = System.currentTimeMillis(), var eventName: String)
 data class ChessPieceEvent(val chessPiece: ChessPiece): Event(eventName = "ChessPieceEvent")
-//
-//data class ChessPiecePosition(val x: Float, val y: Float,
-//                              val verticalBias: Float, val horizontalBias: Float,
-//                              var id: Int = -1,
-//                              var horizontal: Int = 0, var vertical: Int = 0)
 
 data class AbsolutePosition(val screenWith: Int, val screenHeight: Int,
                             val chessPieceWith: Int, val chessPieceHeight: Int,
                             val chessBoardWith: Int, val chessBoardHeight: Int
 )
+data class NetworkProtocol(val id: Int,
+                           val current_x: Int,
+                           val current_y: Int,
+                           val target_x: Int,
+                           val target_y: Int, val win: Int = -1, val action: Int = 0)
+
+data class NetworkProtocol1(val id: String,
+                           val current_x: String,
+                           val current_y: String,
+                           val target_x: String,
+                           val target_y: String, val win: String = "", val action: String = "")
 
 data class NotificationMessage(var from: Position = Position(),
                                var to: Position = Position(),
@@ -198,13 +205,13 @@ object Model {
 
     private fun calculateBoard(): MutableList<Position>  {
         val chessBoard: MutableList<Position> = mutableListOf()
-        loop@ for (j in 1..9) {
+        loop@ for (j in 0..9) {
             loop@ for (i in 0..8) {
                 val biasY = (0.05F + 0.1 * j).toFloat()
                 val biasX = 0.125F * i
                 val x = biasX * StatusModel.absolutePosition.screenWith - 2 * biasX * StatusModel.absolutePosition.chessBoardWith / 2 + StatusModel.absolutePosition.chessBoardWith / 2
                 val y = biasY * StatusModel.absolutePosition.screenHeight - 2 * biasY * StatusModel.absolutePosition.chessBoardHeight / 2 + StatusModel.absolutePosition.chessBoardHeight / 2
-                chessBoard.add(Position(biasX, biasY, x, y, 8 - i, 9 - j))
+                chessBoard.add(Position(biasX, biasY, x, y, i, 9 - j))
             }
         }
         return chessBoard
@@ -214,10 +221,21 @@ object Model {
         return getDefaultChessBoard().flatten().find { f -> f.position.biasX == biasX && f.position.biasY == biasY }
     }
 
-//    fun action2Notification(action: String): NotificationMessage {
-//        val posInfo = action.toCharArray()
-//        chessBoard.filter { f -> f.horizontal }
-//    }
+    fun action2Notification(action: String): NotificationMessage {
+        val posInfo = action.split("").filter { f -> f.isNotEmpty() }.map { f -> f.toInt() }
+        val from = chessBoard.find { f -> f.horizontalPos == posInfo[0] && f.verticalPos == posInfo[1]}
+        val to = chessBoard.find { f -> f.horizontalPos == posInfo[2] && f.verticalPos == posInfo[3]}
+        return NotificationMessage(from = from!!, to = to!!)
+    }
+
+    fun notification2Action(notificationMessage: NotificationMessage): NetworkProtocol {
+        val buff = StringBuffer()
+        buff.append(notificationMessage.from.horizontalPos)
+            .append(notificationMessage.from.verticalPos)
+            .append(notificationMessage.to.horizontalPos)
+            .append(notificationMessage.to.verticalPos)
+        return NetworkProtocol(StatusModel.gameInfo.id, notificationMessage.from.horizontalPos, notificationMessage.from.verticalPos, notificationMessage.to.horizontalPos, notificationMessage.to.verticalPos)
+    }
 
     fun getNearPosition(x: Float, y: Float): Position {
         return chessBoard.minBy { abs(it.x - x) + abs(it.y - y) }!!

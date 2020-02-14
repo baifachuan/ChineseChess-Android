@@ -12,8 +12,12 @@ class MoveController {
         val targetBiasX = to.biasX
         val targetBiasY = to.biasY
 
-        val xMove = String.format("%.2f", abs(BigDecimal(targetBiasX.toString()).subtract(BigDecimal(currentBiasX.toString())).toFloat()).toDouble()).toFloat()
-        val yMove = String.format("%.2f", abs(BigDecimal(targetBiasY.toString()).subtract(BigDecimal(currentBiasY.toString())).toFloat()).toDouble()).toFloat()
+        val xMove = String.format("%.2f", abs(
+            BigDecimal(targetBiasX.toString()).subtract(BigDecimal(currentBiasX.toString())).toFloat()
+        ).toDouble()).toFloat()
+        val yMove = String.format("%.2f", abs(
+            BigDecimal(targetBiasY.toString()).subtract(BigDecimal(currentBiasY.toString())).toFloat()
+        ).toDouble()).toFloat()
 
         val exist = Model.getChessPiece(to.biasX, to.biasY)
         exist?.let {
@@ -28,14 +32,16 @@ class MoveController {
                 if (String.format("%.2f", abs(BigDecimal(targetBiasX.toString()).subtract(BigDecimal(currentBiasX.toString())).toFloat()).toDouble()) == "0.25") {
                     val constraintPosition = if (targetBiasX > currentBiasX) { currentBiasX + 0.125 } else { currentBiasX - 0.125 }
                     hasConstraint = mapping.values
-                        .map { f -> f.filter { f1 -> f1.position.biasY == currentBiasY && f1.position.biasX == constraintPosition.toFloat()} }.filter { f -> f.isNotEmpty() }
+                        .map { f -> f.filter { f1 -> f1.position.biasY == currentBiasY && f1.position.biasX == constraintPosition.toFloat()} }
+                        .filter { f -> f.isNotEmpty() }
                         .count()
                 }
 
                 if (String.format("%.2f", abs(BigDecimal(targetBiasY.toString()).subtract(BigDecimal(currentBiasY.toString())).toFloat()).toDouble()) == "0.20") {
                     val constraintPosition = if (targetBiasY > currentBiasY) { currentBiasY + 0.1 } else { currentBiasY - 0.1 }
                     hasConstraint = mapping.values
-                        .map { f -> f.filter { f1 -> f1.position.biasX == currentBiasX && f1.position.biasY == constraintPosition.toFloat()} }.filter { f -> f.isNotEmpty() }
+                        .map { f -> f.filter { f1 -> f1.position.biasX == currentBiasX && f1.position.biasY == constraintPosition.toFloat()} }
+                        .filter { f -> f.isNotEmpty() }
                         .count()
                 }
                 return listOf("0.269", "0.236").contains(String.format("%.3f",
