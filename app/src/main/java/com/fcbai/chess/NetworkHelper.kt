@@ -9,6 +9,7 @@ import com.github.kittinunf.fuel.Fuel
 import com.google.gson.Gson
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
+import java.util.*
 
 
 object NetworkHelper {
@@ -73,14 +74,35 @@ class AIInvokeAsyncTask(mHandler: Handler, client: MqttAndroidClient): AsyncTask
     }
 }
 
-class LoginAsyncTask : AsyncTask<Void, Void, String>() {
+class LoginAsyncTask(mHandler: Handler) : AsyncTask<Void, String, String>() {
+    private val mHandler = mHandler
+
+    private fun register(): User {
+        val registerData = """{"user_name": "${UUID.randomUUID()}", "password": "fcbai"}"""
+        val (request, response, result) = Fuel.post("http://10.0.2.2:5000/register")
+            .body(registerData)
+            .response()
+        Log.d("response", String(response.data))
+        return Gson().fromJson(String(response.data), User::class.java)
+    }
+
     override fun doInBackground(vararg params: Void?): String? {
-        val bodyJson = """{"id": ${StatusModel.gameInfo.id}}"""
+        val user = register()
+        val bodyJson = """{"id": ${user.id}, "user_name": "${user.user_name}", "token": "${user.token}"}"""
         val (request, response, result) = Fuel.post("http://10.0.2.2:5000/start")
             .body(bodyJson)
             .response()
         Log.d("response", String(response.data))
-        return null
+        return String(response.data)
+    }
+
+    override fun onProgressUpdate(vararg values: String?) {
+        super.onProgressUpdate(*values)
+    }
+
+    override fun onPostExecute(result: String?) {
+        super.onPostExecute(result)
+        mHandler.sendEmptyMessage(GameActivity.GAME_INIT_SUCCESS)
     }
 }
 

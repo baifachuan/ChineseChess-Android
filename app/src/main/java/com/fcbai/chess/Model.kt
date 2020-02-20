@@ -64,7 +64,9 @@ data class NotificationMessage(var from: Position = Position(),
                                var to: Position = Position(),
                                val step: Step = Step.HUMAN)
 
-data class GameInfo(val id: Int = -1, val group: Group = Group.RED)
+data class User(val id: Int = -1, val user_name: String = "", val token: String = "", val password: String = "", val last_update_time: String = "")
+
+data class GameInfo(val id: Int = -1, val group: Group = Group.RED, val user: User = User())
 
 object StatusModel {
     var stepMessage: NotificationMessage = NotificationMessage()

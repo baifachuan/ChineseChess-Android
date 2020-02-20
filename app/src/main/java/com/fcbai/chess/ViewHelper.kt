@@ -106,4 +106,24 @@ class CountDownDialog: Dialog, View.OnClickListener {
 
 }
 
+class LoadDialog: Dialog, View.OnClickListener {
+
+    constructor(context: Context) : super(context)
+
+    init {
+        setCancelable(true)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requestWindowFeature(Window.FEATURE_NO_TITLE)
+        setContentView(R.layout.loading_layout)
+    }
+
+    override fun onClick(v: View?) {
+        this@LoadDialog.dismiss()
+    }
+
+}
+
 

@@ -14,21 +14,20 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.beust.klaxon.Klaxon
-import com.google.gson.Gson
-import org.apache.http.params.HttpConnectionParams.setConnectionTimeout
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.MqttAsyncClient
-import org.eclipse.paho.client.mqttv3.MqttMessage
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 
 
 class GameActivity: AppCompatActivity() {
 
     var onClickMediaPlayer: MediaPlayer? = null
+    var loadDialog: LoadDialog? = null
 
     companion object {
         const val AI_UPDATE = 1001
         const val COUNT_DOWN = 1002
+        const val GAME_INIT_SUCCESS = 1003
 
     }
 
@@ -62,6 +61,10 @@ class GameActivity: AppCompatActivity() {
 
                 }
 
+                GAME_INIT_SUCCESS -> {
+                    loadDialog!!.dismiss()
+                }
+
                 else -> {
 
                 }
@@ -83,6 +86,9 @@ class GameActivity: AppCompatActivity() {
         val constraintLayout = findViewById<ConstraintLayout>(R.id.game_panel)
         val displayMetrics = DisplayMetrics()
         this.windowManager.defaultDisplay.getMetrics(displayMetrics)
+
+        loadDialog = LoadDialog(this@GameActivity)
+        loadDialog!!.show()
 
         val client = MqttAndroidClient(applicationContext, "tcp://10.0.2.2:1883", MqttAsyncClient.generateClientId())
 
@@ -235,7 +241,7 @@ class GameActivity: AppCompatActivity() {
 
             v?.onTouchEvent(event) ?: false
         }
-        LoginAsyncTask().execute()
+        LoginAsyncTask(mHandler).execute()
         AIInvokeAsyncTask(mHandler, client).execute()
     }
 
