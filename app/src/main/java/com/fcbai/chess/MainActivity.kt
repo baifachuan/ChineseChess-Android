@@ -1,16 +1,21 @@
 package com.fcbai.chess
 
 import android.annotation.SuppressLint
+import android.app.Dialog
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.MotionEvent
+import android.view.View
 import android.view.Window
 import android.view.WindowManager
+import android.widget.Button
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.children
 import androidx.core.view.isVisible
+import kotlin.system.exitProcess
 
 
 class MainActivity : AppCompatActivity() {
@@ -63,6 +68,17 @@ class MainActivity : AppCompatActivity() {
         val startGameButton = findViewById<ImageButton>(R.id.start_game)
         startGameButton.setOnClickListener { v ->
             startActivity(Intent(MainActivity@this, GameActivity::class.java))
+        }
+
+        val helpButton = findViewById<ImageButton>(R.id.help)
+        helpButton.setOnClickListener { v ->
+            HelpDialog(this@MainActivity).show()
+        }
+
+        val exitButton = findViewById<ImageButton>(R.id.exit_game)
+        exitButton.setOnClickListener{ v ->
+            android.os.Process.killProcess(android.os.Process.myPid())
+            exitProcess(1)
         }
     }
 }

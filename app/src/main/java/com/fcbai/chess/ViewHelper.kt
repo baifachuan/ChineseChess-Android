@@ -1,9 +1,15 @@
 package com.fcbai.chess
 
+import android.app.Dialog
+import android.content.Context
 import android.graphics.*
+import android.os.Bundle
+import android.view.View
+import android.view.Window
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
 import android.view.animation.LinearInterpolator
+import android.widget.Button
 
 object ViewHelper {
     fun getAlphaAnimationForBlink(): AlphaAnimation {
@@ -53,3 +59,51 @@ object ViewHelper {
         return newb
     }
 }
+
+
+
+class HelpDialog: Dialog, View.OnClickListener {
+
+    constructor(context: Context) : super(context)
+
+    init {
+        setCancelable(true)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requestWindowFeature(Window.FEATURE_NO_TITLE)
+        setContentView(R.layout.help_layout)
+        val cancelButton = findViewById<Button>(R.id.cancel)
+        cancelButton.setOnClickListener(this@HelpDialog)
+    }
+
+    override fun onClick(v: View?) {
+        this@HelpDialog.dismiss()
+    }
+
+}
+
+class CountDownDialog: Dialog, View.OnClickListener {
+
+    constructor(context: Context) : super(context)
+
+    init {
+        setCancelable(true)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requestWindowFeature(Window.FEATURE_NO_TITLE)
+        setContentView(R.layout.count_down_layout)
+        val cancelButton = findViewById<Button>(R.id.cancel)
+        cancelButton.setOnClickListener(this@CountDownDialog)
+    }
+
+    override fun onClick(v: View?) {
+        this@CountDownDialog.dismiss()
+    }
+
+}
+
+

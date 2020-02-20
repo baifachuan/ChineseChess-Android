@@ -28,30 +28,45 @@ class GameActivity: AppCompatActivity() {
 
     companion object {
         const val AI_UPDATE = 1001
+        const val COUNT_DOWN = 1002
+
     }
 
     private val mHandler: Handler = object : Handler(Looper.getMainLooper()) {
         override fun handleMessage(msg: Message?) {
             super.handleMessage(msg)
-            val notificationMessage = Klaxon().parse<NotificationMessage>(msg?.obj.toString())
-            notificationMessage?.let {
+            when(msg?.what) {
+                AI_UPDATE -> {
+                    val notificationMessage = Klaxon().parse<NotificationMessage>(msg.obj.toString())
+                    notificationMessage?.let {
 
-                Model.getChessPiece(it.to.biasX, it.to.biasY)?.let { exist ->
-                    findViewById<ImageButton>(exist.id).visibility = View.INVISIBLE
-                    exist.isDeath = true
+                        Model.getChessPiece(it.to.biasX, it.to.biasY)?.let { exist ->
+                            findViewById<ImageButton>(exist.id).visibility = View.INVISIBLE
+                            exist.isDeath = true
+                        }
+
+                        Model.getChessPiece(it.from.biasX, it.from.biasY)?.let { exist ->
+                            val view = findViewById<ImageButton>(exist.id)
+                            val layout = view.layoutParams as ConstraintLayout.LayoutParams
+                            layout.verticalBias = it.to.biasY
+                            layout.horizontalBias = it.to.biasX
+                            view.layoutParams = layout
+                            exist.position = it.to
+                            onClickMediaPlayer?.start()
+                        }
+
+                    }
                 }
 
-                Model.getChessPiece(it.from.biasX, it.from.biasY)?.let { exist ->
-                    val view = findViewById<ImageButton>(exist.id)
-                    val layout = view.layoutParams as ConstraintLayout.LayoutParams
-                    layout.verticalBias = it.to.biasY
-                    layout.horizontalBias = it.to.biasX
-                    view.layoutParams = layout
-                    exist.position = it.to
-                    onClickMediaPlayer?.start()
+                COUNT_DOWN -> {
+
                 }
 
+                else -> {
+
+                }
             }
+
 
         }
     }
