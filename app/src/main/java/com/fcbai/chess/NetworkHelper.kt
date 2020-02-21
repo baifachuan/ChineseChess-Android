@@ -3,8 +3,12 @@ package com.fcbai.chess
 import android.content.Context
 import android.os.AsyncTask
 import android.os.Handler
+import android.os.Looper
 import android.os.Message
 import android.util.Log
+import android.view.View
+import android.widget.ImageButton
+import androidx.constraintlayout.widget.ConstraintLayout
 import com.beust.klaxon.Klaxon
 import com.github.kittinunf.fuel.Fuel
 import com.google.gson.Gson
@@ -17,6 +21,52 @@ object NetworkHelper {
 
     private const val sendTopicName = "receive_topic_name"
     private const val receiveTopicName = "send_topic_name"
+
+
+    fun getHandler(gameActivity: GameActivity): Handler {
+        return object : Handler(Looper.getMainLooper()) {
+            override fun handleMessage(msg: Message?) {
+                super.handleMessage(msg)
+                when(msg?.what) {
+                    GameActivity.AI_UPDATE -> {
+                        val notificationMessage = Klaxon().parse<NotificationMessage>(msg.obj.toString())
+                        notificationMessage?.let {
+
+                            Model.getChessPiece(it.to.biasX, it.to.biasY)?.let { exist ->
+                                gameActivity.findViewById<ImageButton>(exist.id).visibility = View.INVISIBLE
+                                exist.isDeath = true
+                            }
+
+                            Model.getChessPiece(it.from.biasX, it.from.biasY)?.let { exist ->
+                                val view = gameActivity.findViewById<ImageButton>(exist.id)
+                                val layout = view.layoutParams as ConstraintLayout.LayoutParams
+                                layout.verticalBias = it.to.biasY
+                                layout.horizontalBias = it.to.biasX
+                                view.layoutParams = layout
+                                exist.position = it.to
+                                gameActivity.onClickMediaPlayer?.start()
+                            }
+
+                        }
+                    }
+
+                    GameActivity.COUNT_DOWN -> {
+
+                    }
+
+                    GameActivity.GAME_INIT_SUCCESS -> {
+                        gameActivity.loadDialog!!.dismiss()
+                    }
+
+                    else -> {
+
+                    }
+                }
+
+
+            }
+        }
+    }
 
     fun receive(mHandler: Handler, client: MqttAndroidClient) {
         try {

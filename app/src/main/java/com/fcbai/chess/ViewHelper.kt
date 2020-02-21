@@ -84,28 +84,6 @@ class HelpDialog: Dialog, View.OnClickListener {
 
 }
 
-class CountDownDialog: Dialog, View.OnClickListener {
-
-    constructor(context: Context) : super(context)
-
-    init {
-        setCancelable(true)
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        requestWindowFeature(Window.FEATURE_NO_TITLE)
-        setContentView(R.layout.count_down_layout)
-        val cancelButton = findViewById<Button>(R.id.cancel)
-        cancelButton.setOnClickListener(this@CountDownDialog)
-    }
-
-    override fun onClick(v: View?) {
-        this@CountDownDialog.dismiss()
-    }
-
-}
-
 class LoadDialog: Dialog, View.OnClickListener {
 
     constructor(context: Context) : super(context)
@@ -125,5 +103,4 @@ class LoadDialog: Dialog, View.OnClickListener {
     }
 
 }
-
 
