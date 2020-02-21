@@ -52,7 +52,9 @@ data class NetworkProtocol(val id: Int,
                            val current_x: Int,
                            val current_y: Int,
                            val target_x: Int,
-                           val target_y: Int, val win: Int = -1, val action: Int = 0)
+                           val target_y: Int,
+                           val win: Int = -1,
+                           val action: Int = 0, val user: User)
 
 data class NetworkProtocol1(val id: String,
                            val current_x: String,
@@ -236,7 +238,12 @@ object Model {
             .append(notificationMessage.from.verticalPos)
             .append(notificationMessage.to.horizontalPos)
             .append(notificationMessage.to.verticalPos)
-        return NetworkProtocol(StatusModel.gameInfo.id, notificationMessage.from.horizontalPos, notificationMessage.from.verticalPos, notificationMessage.to.horizontalPos, notificationMessage.to.verticalPos)
+        return NetworkProtocol(
+            StatusModel.gameInfo.id,
+            notificationMessage.from.horizontalPos,
+            notificationMessage.from.verticalPos,
+            notificationMessage.to.horizontalPos,
+            notificationMessage.to.verticalPos, user = StatusModel.gameInfo.user)
     }
 
     fun getNearPosition(x: Float, y: Float): Position {

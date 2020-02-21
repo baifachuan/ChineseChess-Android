@@ -88,6 +88,7 @@ class LoginAsyncTask(mHandler: Handler) : AsyncTask<Void, String, String>() {
 
     override fun doInBackground(vararg params: Void?): String? {
         val user = register()
+        StatusModel.gameInfo = StatusModel.gameInfo.copy(user = user)
         val bodyJson = """{"id": ${user.id}, "user_name": "${user.user_name}", "token": "${user.token}"}"""
         val (request, response, result) = Fuel.post("http://10.0.2.2:5000/start")
             .body(bodyJson)
