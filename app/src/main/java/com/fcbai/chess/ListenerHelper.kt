@@ -53,20 +53,13 @@ class ButtonOnClickListener(gameActivity: GameActivity): View.OnClickListener {
         if (StatusModel.stepMessage.step == Step.AI) return
         val onClickChessPiece = Model.getChessPiece(view.id)
 
-        val to = Position(
-            biasY = onClickChessPiece.position.biasY,
-            biasX = onClickChessPiece.position.biasX,
-            x = onClickChessPiece.position.x,
-            y = onClickChessPiece.position.y
-        )
+        val to = Model.getPosition(onClickChessPiece.position.biasX, onClickChessPiece.position.biasY)!!
 
         val toLayout = view.layoutParams as ConstraintLayout.LayoutParams
 
         //这里需要检查，吃掉对方棋子的情况
         StatusModel.getChessPieceEvent()?.let {
-
-            val from = it.chessPiece.position
-
+            val from = Model.getPosition(it.chessPiece.position.biasX, it.chessPiece.position.biasY)!!
             when (Model.updateChessBoard(it.chessPiece.id, to)) {
 
                 ActionStatus.SUCCESS -> {
