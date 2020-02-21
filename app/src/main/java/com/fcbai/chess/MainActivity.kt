@@ -2,6 +2,9 @@ package com.fcbai.chess
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.Window
@@ -10,11 +13,14 @@ import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.children
-import androidx.core.view.isVisible
 import kotlin.system.exitProcess
 
 
 class MainActivity : AppCompatActivity() {
+
+    private var backgroundMusic: MediaPlayer? = null
+    private var isOenBackgroundMisc = true
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,6 +31,12 @@ class MainActivity : AppCompatActivity() {
             WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
         setContentView(R.layout.activity_main)
+
+        backgroundMusic = MediaPlayer.create(this, R.raw.background)
+        backgroundMusic?.isLooping = false
+        if (isOenBackgroundMisc)
+            backgroundMusic?.start()
+
         setButtonEvent()
         val constraintLayout = findViewById<ConstraintLayout>(R.id.main_layout)
         constraintLayout.children.forEach { f ->
@@ -48,21 +60,34 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setButtonEvent() {
-        val closeSoundButton = findViewById<ImageButton>(R.id.close_sound)
-        closeSoundButton.setOnClickListener { v ->
-            v?.isVisible ?: false
-            findViewById<ImageButton>(R.id.open_sound).isVisible = true
+        val soundButton = findViewById<ImageButton>(R.id.control_sound)
+        soundButton.setOnClickListener { v ->
+            if (!isOenBackgroundMisc) {
+                soundButton.background = BitmapDrawable(
+                    resources,
+                    BitmapFactory.decodeResource(
+                        resources, R.drawable.opensound)
+                )
+                isOenBackgroundMisc = true
+                backgroundMusic?.stop()
+                backgroundMusic?.start()
+
+            } else {
+                soundButton.background = BitmapDrawable(
+                    resources,
+                    BitmapFactory.decodeResource(
+                        resources, R.drawable.closesound)
+                )
+                isOenBackgroundMisc = false
+                backgroundMusic?.stop()
+            }
         }
 
-
-        val openSoundButton = findViewById<ImageButton>(R.id.open_sound)
-        openSoundButton.setOnClickListener { v ->
-            v?.isVisible ?: false
-            findViewById<ImageButton>(R.id.close_sound).isVisible = true
-        }
 
         val startGameButton = findViewById<ImageButton>(R.id.start_game)
         startGameButton.setOnClickListener { v ->
+            backgroundMusic?.stop()
+            backgroundMusic?.release()
             startActivity(Intent(MainActivity@this, GameActivity::class.java))
         }
 

@@ -28,6 +28,8 @@ class GameActivity: AppCompatActivity() {
         const val AI_UPDATE = 1001
         const val COUNT_DOWN = 1002
         const val GAME_INIT_SUCCESS = 1003
+        const val RED_WIN = 1004
+        const val BLACK_WIN = 1005
 
     }
 

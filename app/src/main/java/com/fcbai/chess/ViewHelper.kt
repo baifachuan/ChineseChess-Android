@@ -1,15 +1,19 @@
 package com.fcbai.chess
 
+import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.Context
 import android.graphics.*
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
 import android.view.Window
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
 import android.view.animation.LinearInterpolator
 import android.widget.Button
+import android.widget.ImageButton
+import android.widget.ImageView
 
 object ViewHelper {
     fun getAlphaAnimationForBlink(): AlphaAnimation {
@@ -70,11 +74,28 @@ class HelpDialog: Dialog, View.OnClickListener {
         setCancelable(true)
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         setContentView(R.layout.help_layout)
-        val cancelButton = findViewById<Button>(R.id.cancel)
+        val cancelButton = findViewById<ImageView>(R.id.cancel)
+        cancelButton.setOnTouchListener{v, event ->
+            if (v is ImageButton) {
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        v.setScaleX(0.95F)
+                        v.setScaleY(0.95F)
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        v.setScaleX(1.0F)
+                        v.setScaleY(1.0F)
+                    }
+
+                }
+            }
+            v?.onTouchEvent(event) ?: false
+        }
         cancelButton.setOnClickListener(this@HelpDialog)
     }
 
