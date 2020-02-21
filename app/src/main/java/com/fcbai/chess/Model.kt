@@ -1,9 +1,11 @@
 package com.fcbai.chess
 
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import android.view.View
 import androidx.annotation.RequiresApi
+import java.util.*
 import java.util.concurrent.LinkedBlockingDeque
 import kotlin.math.abs
 
@@ -280,5 +282,15 @@ object Model {
             Log.d("move fail", "move:" + currentPosition.chessPieceType.name)
             ActionStatus.CANNOTMOVE
         }
+    }
+}
+
+object ConfigHelper {
+    fun getValue(context: Context, key: String): String {
+        val resources = context.resources
+        val rawResource = resources.openRawResource(R.raw.config)
+        val properties = Properties()
+        properties.load(rawResource)
+        return properties.getProperty(key)
     }
 }

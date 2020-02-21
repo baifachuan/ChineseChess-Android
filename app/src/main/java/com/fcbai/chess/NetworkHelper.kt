@@ -1,5 +1,6 @@
 package com.fcbai.chess
 
+import android.content.Context
 import android.os.AsyncTask
 import android.os.Handler
 import android.os.Message
@@ -16,7 +17,6 @@ object NetworkHelper {
 
     private const val sendTopicName = "receive_topic_name"
     private const val receiveTopicName = "send_topic_name"
-    private const val serverURI = "tcp://10.0.2.2:1883"
 
     fun receive(mHandler: Handler, client: MqttAndroidClient) {
         try {
@@ -74,12 +74,13 @@ class AIInvokeAsyncTask(mHandler: Handler, client: MqttAndroidClient): AsyncTask
     }
 }
 
-class LoginAsyncTask(mHandler: Handler) : AsyncTask<Void, String, String>() {
+class LoginAsyncTask(mHandler: Handler, context: Context) : AsyncTask<Void, String, String>() {
     private val mHandler = mHandler
+    private val context = context
 
     private fun register(): User {
         val registerData = """{"user_name": "${UUID.randomUUID()}", "password": "fcbai"}"""
-        val (request, response, result) = Fuel.post("http://10.0.2.2:5000/register")
+        val (request, response, result) = Fuel.post(ConfigHelper.getValue(context, "register.url"))
             .body(registerData)
             .response()
         Log.d("response", String(response.data))
@@ -90,7 +91,7 @@ class LoginAsyncTask(mHandler: Handler) : AsyncTask<Void, String, String>() {
         val user = register()
         StatusModel.gameInfo = StatusModel.gameInfo.copy(user = user)
         val bodyJson = """{"id": ${user.id}, "user_name": "${user.user_name}", "token": "${user.token}"}"""
-        val (request, response, result) = Fuel.post("http://10.0.2.2:5000/start")
+        val (request, response, result) = Fuel.post(ConfigHelper.getValue(context, "start_game.url"))
             .body(bodyJson)
             .response()
         Log.d("response", String(response.data))

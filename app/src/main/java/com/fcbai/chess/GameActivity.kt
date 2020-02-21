@@ -90,19 +90,14 @@ class GameActivity: AppCompatActivity() {
         loadDialog = LoadDialog(this@GameActivity)
         loadDialog!!.show()
 
-        val client = MqttAndroidClient(applicationContext, "tcp://10.0.2.2:1883", MqttAsyncClient.generateClientId())
+        val client = MqttAndroidClient(applicationContext, ConfigHelper.getValue(this@GameActivity, "mqtt.uri"), MqttAsyncClient.generateClientId())
 
-        // 设置MQTT监听并且接受消息
         client.setCallback(MQttCallbackHandler(mHandler))
-        //Mqtt的一些设置
         val conOpt = MqttConnectOptions()
-        conOpt.setAutomaticReconnect(true)
-        // 清除缓存
-        conOpt.setCleanSession(true)
-        // 设置超时时间，单位：秒
-        conOpt.setConnectionTimeout(10)
-        // 心跳包发送间隔，单位：秒
-        conOpt.setKeepAliveInterval(20)
+        conOpt.isAutomaticReconnect = true
+        conOpt.isCleanSession = true
+        conOpt.connectionTimeout = 10
+        conOpt.keepAliveInterval = 20
 
         client.connect(conOpt, null, MQTTIMqttActionListener())
 
@@ -241,7 +236,7 @@ class GameActivity: AppCompatActivity() {
 
             v?.onTouchEvent(event) ?: false
         }
-        LoginAsyncTask(mHandler).execute()
+        LoginAsyncTask(mHandler, this@GameActivity).execute()
         AIInvokeAsyncTask(mHandler, client).execute()
     }
 
